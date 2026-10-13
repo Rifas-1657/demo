@@ -388,3 +388,76 @@ export function isApiConfigured(): boolean {
   return BASE_URL !== null
 }
 
+// ---- Voice (TTS & STT) ----------------------------------------------------
+
+export interface ApiSTTResponse {
+  transcript: string
+  language: string
+  duration_s: number
+}
+
+export interface ApiTTSResponseJSON {
+  audio_base64: string
+  mime_type: string
+  duration_ms: number
+}
+
+/**
+ * POST /api/voice/tts — Synthesize lesson speech via Gemini TTS.
+ * Returns raw audio Blob for direct HTML5 Audio playback.
+ */
+export async function synthesizeSpeech(
+  text: string,
+  voice?: string,
+  speed: number = 1.0,
+): Promise<Blob> {
+  if (!BASE_URL) throw new Error('API_URL_NOT_SET')
+  const token = getAuthToken()
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  const res = await fetch(`${BASE_URL}/api/voice/tts`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ text, voice, speed }),
+  })
+  if (!res.ok) {
+    const textErr = await res.text().catch(() => res.statusText)
+    throw new Error(`${res.status}: ${textErr}`)
+  }
+  return res.blob()
+}
+
+/**
+ * POST /api/voice/stt — Transcribe audio recording via Groq Whisper.
+ * Sends recorded audio Blob as multipart/form-data.
+ */
+export async function transcribeAudio(
+  file: Blob,
+  language?: string,
+): Promise<ApiSTTResponse> {
+  if (!BASE_URL) throw new Error('API_URL_NOT_SET')
+  const token = getAuthToken()
+  const headers: Record<string, string> = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  const formData = new FormData()
+  formData.append('file', file, 'recording.webm')
+  if (language) {
+    formData.append('language', language)
+  }
+
+  const res = await fetch(`${BASE_URL}/api/voice/stt`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  })
+  if (!res.ok) {
+    const textErr = await res.text().catch(() => res.statusText)
+    throw new Error(`${res.status}: ${textErr}`)
+  }
+  return res.json() as Promise<ApiSTTResponse>
+}
+

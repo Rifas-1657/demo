@@ -1,8 +1,9 @@
 'use client'
 
-import { Loader2, MessagesSquare, Send, Trash2, X } from 'lucide-react'
+import { Loader2, MessagesSquare, Mic, Send, Trash2, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
-import { MAX_QUESTION_LENGTH, TUTOR_SUGGESTIONS } from '@/lib/tutor/demo-tutor'
+import { DEMO_MIC_TRANSCRIPT, MAX_QUESTION_LENGTH, TUTOR_SUGGESTIONS } from '@/lib/tutor/demo-tutor'
+import { useVoiceRecorder } from '@/lib/voice/use-voice-recorder'
 import { ChatMessageItem } from './chat-message'
 import type { CourseTutor } from './use-course-tutor'
 
@@ -37,6 +38,7 @@ export function CourseChatPanel({ courseTitle, pageTitle, tutor, onOpenSource, o
   const cancelRef = useRef<HTMLButtonElement>(null)
   const { messages, busy, reveal } = tutor
   const lastTutor = [...messages].reverse().find((m) => m.role === 'tutor')
+  const recorder = useVoiceRecorder()
 
   useEffect(() => {
     const list = listRef.current
@@ -168,39 +170,103 @@ export function CourseChatPanel({ courseTitle, pageTitle, tutor, onOpenSource, o
         {lastTutor?.status === 'thinking' ? 'Tutor is thinking' : lastTutor?.status === 'done' ? `Tutor answered: ${lastTutor.text}` : ''}
       </p>
 
-      <form onSubmit={submit} className="flex items-end gap-2">
-        <label htmlFor={inputId} className="sr-only">
-          Ask a question about this course
-        </label>
-        <textarea
-          id={inputId}
-          ref={inputRef}
-          rows={1}
-          value={draft}
-          maxLength={MAX_QUESTION_LENGTH}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key !== 'Enter' || event.shiftKey) return
-            if (event.nativeEvent.isComposing || event.keyCode === 229) return
-            event.preventDefault()
-            send(draft)
-          }}
-          placeholder={busy ? 'Tutor is answering…' : 'Ask about this course…'}
-          className="field-sizing-content max-h-32 min-h-10 min-w-0 flex-1 resize-none rounded-2xl border border-white/10 bg-black/25 px-4 py-2.5 text-sm placeholder:text-muted-foreground focus-visible:border-book-orange/60 focus-visible:ring-2 focus-visible:ring-book-orange/40 focus-visible:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={!draft.trim() || busy}
-          aria-label={busy ? 'Waiting for answer' : 'Send question'}
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-book-orange text-book-ink transition-colors hover:bg-book-marker focus-visible:ring-2 focus-visible:ring-book-marker focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {busy ? (
-            <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" />
-          ) : (
-            <Send className="size-4" aria-hidden="true" />
-          )}
-        </button>
-      </form>
+      {recorder.state === 'recording' ? (
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-book-orange/40 bg-book-orange/10 px-4 py-2.5 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-red-500 animate-pulse" aria-hidden="true" />
+            <span className="font-mono tabular-nums text-foreground/90">
+              Recording… {Math.floor(recorder.duration / 60)}:{(recorder.duration % 60).toString().padStart(2, '0')}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => recorder.stopAndTranscribe((text) => setDraft((prev) => (prev ? `${prev} ${text}` : text)))}
+              aria-label="Stop recording and transcribe speech"
+              className="rounded-full bg-book-orange px-3 py-1 font-semibold text-book-ink hover:bg-book-marker focus-visible:ring-2 focus-visible:ring-book-marker focus-visible:outline-none"
+            >
+              Done
+            </button>
+            <button
+              type="button"
+              onClick={recorder.cancelRecording}
+              aria-label="Cancel recording"
+              className="rounded-full px-2 py-1 text-muted-foreground hover:bg-white/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-book-orange focus-visible:outline-none"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={submit} className="flex items-end gap-2">
+          <label htmlFor={inputId} className="sr-only">
+            Ask a question about this course
+          </label>
+          <textarea
+            id={inputId}
+            ref={inputRef}
+            rows={1}
+            value={draft}
+            maxLength={MAX_QUESTION_LENGTH}
+            disabled={recorder.state === 'transcribing'}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' || event.shiftKey) return
+              if (event.nativeEvent.isComposing || event.keyCode === 229) return
+              event.preventDefault()
+              send(draft)
+            }}
+            placeholder={
+              recorder.state === 'transcribing'
+                ? 'Transcribing speech…'
+                : busy
+                  ? 'Tutor is answering…'
+                  : 'Ask about this course…'
+            }
+            className="field-sizing-content max-h-32 min-h-10 min-w-0 flex-1 resize-none rounded-2xl border border-white/10 bg-black/25 px-4 py-2.5 text-sm placeholder:text-muted-foreground focus-visible:border-book-orange/60 focus-visible:ring-2 focus-visible:ring-book-orange/40 focus-visible:outline-none disabled:opacity-50"
+          />
+          <button
+            type="button"
+            disabled={busy || recorder.state === 'transcribing'}
+            onClick={() => {
+              if (recorder.isApiConfigured) {
+                recorder.startRecording()
+              } else {
+                setDraft(DEMO_MIC_TRANSCRIPT)
+              }
+            }}
+            aria-label={
+              recorder.isApiConfigured
+                ? 'Record question with microphone'
+                : 'Demo mic: fill in a sample question'
+            }
+            className="grid size-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-foreground/80 transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-book-orange focus-visible:outline-none disabled:opacity-40"
+          >
+            {recorder.state === 'transcribing' ? (
+              <Loader2 className="size-4 animate-spin text-book-orange" aria-hidden="true" />
+            ) : (
+              <Mic className="size-4" aria-hidden="true" />
+            )}
+          </button>
+          <button
+            type="submit"
+            disabled={!draft.trim() || busy || recorder.state === 'transcribing'}
+            aria-label={busy ? 'Waiting for answer' : 'Send question'}
+            className="grid size-10 shrink-0 place-items-center rounded-full bg-book-orange text-book-ink transition-colors hover:bg-book-marker focus-visible:ring-2 focus-visible:ring-book-marker focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {busy ? (
+              <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" />
+            ) : (
+              <Send className="size-4" aria-hidden="true" />
+            )}
+          </button>
+        </form>
+      )}
+      {recorder.errorMessage && (
+        <p className="px-1 text-[11px] text-destructive" aria-live="polite">
+          {recorder.errorMessage}
+        </p>
+      )}
     </div>
   )
 }

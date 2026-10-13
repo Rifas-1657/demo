@@ -163,7 +163,7 @@ export function VoiceDock({
             aria-hidden="true"
             className={cn('size-1.5 rounded-full bg-book-amber/60', speaking && 'bg-book-orange motion-safe:animate-pulse')}
           />
-          <span>Narration simulation</span>
+          <span>{stream.player.producesSound ? 'Narration' : 'Narration simulation'}</span>
           <span aria-hidden="true">·</span>
           <span>{streamingEnabled ? statusLabel[status] : 'Off in full view'}</span>
           {sentenceNumber && !completed && (
@@ -258,7 +258,17 @@ export function VoiceDock({
             {rate}×
           </button>
         </Hint>
-        <Hint label={muted ? 'Unmute (this demo plays no audio)' : 'Mute (this demo plays no audio)'}>
+        <Hint
+          label={
+            muted
+              ? stream.player.producesSound
+                ? 'Unmute narration'
+                : 'Unmute (this demo plays no audio)'
+              : stream.player.producesSound
+                ? 'Mute narration'
+                : 'Mute (this demo plays no audio)'
+          }
+        >
           <button
             type="button"
             onClick={() => onMutedChange(!muted)}

@@ -43,7 +43,10 @@ async def get_stt() -> "SpeechToText":
     s = get_settings()
     if s.groq_api_key:
         from app.voice.stt.groq_whisper import GroqWhisperSTT
-        return GroqWhisperSTT(api_key=s.groq_api_key, model=s.groq_whisper_model)
+        return GroqWhisperSTT(
+            api_key=s.groq_api_key,
+            model=s.bookey_stt_model or s.groq_whisper_model,
+        )
     from app.voice.stt.faster_whisper import FasterWhisperSTT
     return FasterWhisperSTT(model_name=s.faster_whisper_model)
 
@@ -53,6 +56,14 @@ def get_tts_chain():
     from app.config import get_settings
     s = get_settings()
     providers = []
+    if s.gemini_api_key:
+        from app.voice.tts.gemini_tts import GeminiTTSProvider
+        providers.append(GeminiTTSProvider(
+            api_key=s.gemini_api_key,
+            model=s.bookey_tts_model,
+            default_voice=s.bookey_tts_voice,
+            style=s.bookey_tts_style,
+        ))
     from app.voice.tts.edge_tts_provider import EdgeTTSProvider
     providers.append(EdgeTTSProvider(voice=s.edge_tts_voice))
     from app.voice.tts.silent import SilentTTS

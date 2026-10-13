@@ -2,9 +2,10 @@
 
 import { useEffect, useEffectEvent, useMemo, useReducer, useRef, useState } from 'react'
 import { useBookClient, useBookEvent } from '@/lib/book-client/react'
+import { isApiConfigured } from '@/lib/api/client'
 import { segmentIdFor } from '@/lib/contracts/book-events'
 import type { BookLessonPage, NarrationCueEvent, NarrationStatus } from '@/types/book'
-import { createMockAudioPlayer, type AudioPlayer } from './audio-player'
+import { createMockAudioPlayer, createTtsAudioPlayer, type AudioPlayer } from './audio-player'
 import { buildNarrationCues } from './cues'
 import { tokenizeNarration, type NarrationSentence, type NarrationWord } from './tokenize'
 
@@ -312,7 +313,7 @@ export function useNarrationStream({
     if (status === 'completed') emitComplete()
   }, [status, pass])
 
-  const [player] = useState(createMockAudioPlayer)
+  const [player] = useState(() => (isApiConfigured() ? createTtsAudioPlayer() : createMockAudioPlayer()))
   const sentenceIndex = wordIndex >= 0 && wordIndex < words.length ? words[wordIndex].sentence : -1
 
   useEffect(() => () => player.dispose(), [player])

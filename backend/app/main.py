@@ -177,6 +177,10 @@ app.include_router(admin_pages_router)
 from app.api.personalization import router as personalization_router
 app.include_router(personalization_router)
 
+# Voice: TTS + STT endpoints
+from app.api.voice import router as voice_router
+app.include_router(voice_router)
+
 # B6: Observability (/health, /ready, metrics)
 from app.observability import register_observability
 register_observability(app)
