@@ -327,3 +327,63 @@ def test_ping_not_rejected() -> None:
     raw = json.dumps({"type": "ping", "payload": {}})
     event = parse_client_event(raw)
     assert isinstance(event, PingEvent)
+
+
+# ---------------------------------------------------------------------------
+# RunTraceStep.logicalLine parity test (Item 8b)
+# ---------------------------------------------------------------------------
+
+def test_run_trace_step_logical_line_ge1() -> None:
+    """RunTraceStep.logicalLine must be >= 1 (1-based source line number).
+
+    The TypeScript contract documents logicalLine as a 1-based line number.
+    Line 0 is not a valid source line. This parity test verifies the Python
+    Pydantic model enforces ge=1, matching the TS contract documentation.
+    """
+    from app.contracts.models import RunTraceStep
+    from pydantic import ValidationError
+
+    # Valid: line 1 is the first line
+    step1 = RunTraceStep(logicalLine=1, output=None, variables=[])
+    assert step1.logicalLine == 1
+
+    # Valid: arbitrary line number
+    step10 = RunTraceStep(logicalLine=10, output="hello", variables=[])
+    assert step10.logicalLine == 10
+
+    # Invalid: line 0 is not a valid 1-based line number
+    with pytest.raises(ValidationError) as exc_info:
+        RunTraceStep(logicalLine=0, output=None, variables=[])
+    errors = exc_info.value.errors()
+    assert any(
+        e.get("type") == "greater_than_equal" or "ge" in str(e)
+        for e in errors
+    ), f"Expected ge validation error, got: {errors}"
+
+    # Invalid: negative line number
+    with pytest.raises(ValidationError):
+        RunTraceStep(logicalLine=-1, output=None, variables=[])
+
+
+def test_run_trace_step_logical_line_parity_with_seeded_examples() -> None:
+    """Seeded code trace steps all start at logicalLine=1 (matching ge=1 requirement)."""
+    from app.contracts.models import RunTrace, RunTraceStep, RunTraceVariable
+    # Reproduce the seeded trace from mock_book_service.py
+    trace = RunTrace(
+        exampleId="var_basic",
+        steps=[
+            RunTraceStep(logicalLine=1, output=None, variables=[
+                RunTraceVariable(name="x", value="10", type="int")
+            ]),
+            RunTraceStep(logicalLine=2, output="10", variables=[
+                RunTraceVariable(name="x", value="10", type="int")
+            ]),
+            RunTraceStep(logicalLine=3, output="<class 'int'>", variables=[
+                RunTraceVariable(name="x", value="10", type="int")
+            ]),
+        ],
+        stdin=[],
+    )
+    assert all(step.logicalLine >= 1 for step in trace.steps), (
+        "All seeded trace steps must have logicalLine >= 1"
+    )

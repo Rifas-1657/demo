@@ -47,7 +47,7 @@ class RunTraceVariable(BaseModel):
 
 
 class RunTraceStep(BaseModel):
-    logicalLine: int = Field(ge=0)
+    logicalLine: int = Field(ge=1)  # 1-based source line number; 0 is invalid
     output: Optional[str] = None
     variables: list[RunTraceVariable]
 
