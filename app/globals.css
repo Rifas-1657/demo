@@ -1,0 +1,632 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+/*
+ * Bookey design tokens
+ * ------------------------------------------------------------------
+ * Two deliberate themes:
+ *   1. App theme (default, :root)  — marketing, auth, dashboard, catalog, profile, admin.
+ *   2. Book theme ([data-theme="book"]) — ONLY the reader canvas / book pages.
+ * Plus a scoped `.theme-night` surface for deep burgundy sections and the
+ * reader shell. Raw palette tokens (--bk-*, --book-*) never change; the
+ * semantic tokens (--background, --primary, ...) are remapped per scope.
+ */
+
+@custom-variant dark (&:is(.theme-night *));
+@custom-variant book (&:is([data-theme='book'] *));
+
+:root {
+  color-scheme: light;
+
+  /* App palette */
+  --bk-blush: #fff7f8;
+  --bk-surface: #ffffff;
+  --bk-primary: #e11d48;
+  --bk-primary-deep: #9f1239;
+  --bk-pink: #fb7185;
+  --bk-pink-soft: #ffe4e6;
+  --bk-ink: #1f0a10;
+  --bk-muted: #7a5560;
+  --bk-night: #3b0a14;
+  --bk-night-deep: #12040a;
+  --bk-night-gradient: linear-gradient(160deg, var(--bk-night) 0%, var(--bk-night-deep) 100%);
+
+  /* Book palette */
+  --book-paper: #fffbeb;
+  --book-page: #ffffff;
+  --book-marker: #facc15;
+  --book-amber: #f59e0b;
+  --book-orange: #f97316;
+  --book-deep: #c2410c;
+  --book-ink: #292013;
+  --book-muted: #6b5a3e; /* derived from book ink for secondary text (AA on paper) */
+
+  /* Semantic (app theme) */
+  --background: var(--bk-blush);
+  --foreground: var(--bk-ink);
+  --card: var(--bk-surface);
+  --card-foreground: var(--bk-ink);
+  --popover: var(--bk-surface);
+  --popover-foreground: var(--bk-ink);
+  --primary: var(--bk-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--bk-pink-soft);
+  --secondary-foreground: var(--bk-primary-deep);
+  --muted: #fbeef0;
+  --muted-foreground: var(--bk-muted);
+  --accent: var(--bk-pink-soft);
+  --accent-foreground: var(--bk-primary-deep);
+  --destructive: #b91c1c;
+  --border: #f3d9de;
+  --input: #ecccd3;
+  --ring: var(--bk-primary);
+  --chart-1: var(--bk-primary);
+  --chart-2: var(--bk-pink);
+  --chart-3: var(--bk-primary-deep);
+  --chart-4: #fda4af;
+  --chart-5: var(--bk-muted);
+  --radius: 0.875rem;
+
+  --sidebar: var(--bk-surface);
+  --sidebar-foreground: var(--bk-ink);
+  --sidebar-primary: var(--bk-primary);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--bk-pink-soft);
+  --sidebar-accent-foreground: var(--bk-primary-deep);
+  --sidebar-border: #f3d9de;
+  --sidebar-ring: var(--bk-primary);
+}
+
+/* Deep burgundy sections and the immersive reader shell */
+.theme-night {
+  color-scheme: dark;
+  --background: var(--bk-night-deep);
+  --foreground: #fff1f3;
+  --card: #2a0810;
+  --card-foreground: #fff1f3;
+  --popover: #2a0810;
+  --popover-foreground: #fff1f3;
+  --primary: var(--bk-pink);
+  --primary-foreground: var(--bk-night-deep);
+  --secondary: #4a1220;
+  --secondary-foreground: #ffe4e6;
+  --muted: #2f0a13;
+  --muted-foreground: #e4b6bf;
+  --accent: #4a1220;
+  --accent-foreground: #ffe4e6;
+  --border: rgb(255 228 230 / 0.12);
+  --input: rgb(255 228 230 / 0.18);
+  --ring: var(--bk-pink);
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Book reader canvas — apply ONLY via data-theme="book" on the reader canvas */
+[data-theme='book'] {
+  color-scheme: light;
+  --background: var(--book-paper);
+  --foreground: var(--book-ink);
+  --card: var(--book-page);
+  --card-foreground: var(--book-ink);
+  --popover: var(--book-page);
+  --popover-foreground: var(--book-ink);
+  --primary: var(--book-deep);
+  --primary-foreground: #ffffff;
+  --secondary: #fef3c7;
+  --secondary-foreground: var(--book-ink);
+  --muted: #fdf3d4;
+  --muted-foreground: var(--book-muted);
+  --accent: #fef08a;
+  --accent-foreground: var(--book-ink);
+  --border: #f1e3bd;
+  --input: #ead9a9;
+  --ring: var(--book-orange);
+  --chart-1: var(--book-orange);
+  --chart-2: var(--book-amber);
+  --chart-3: var(--book-deep);
+  --chart-4: var(--book-marker);
+  --chart-5: var(--book-muted);
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font-bricolage), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-blush: var(--bk-blush);
+  --color-surface: var(--bk-surface);
+  --color-brand: var(--bk-primary);
+  --color-brand-deep: var(--bk-primary-deep);
+  --color-brand-pink: var(--bk-pink);
+  --color-brand-soft: var(--bk-pink-soft);
+  --color-ink: var(--bk-ink);
+  --color-ink-muted: var(--bk-muted);
+  --color-night: var(--bk-night);
+  --color-night-deep: var(--bk-night-deep);
+
+  --color-book-paper: var(--book-paper);
+  --color-book-page: var(--book-page);
+  --color-book-marker: var(--book-marker);
+  --color-book-amber: var(--book-amber);
+  --color-book-orange: var(--book-orange);
+  --color-book-deep: var(--book-deep);
+  --color-book-ink: var(--book-ink);
+  --color-book-muted: var(--book-muted);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    overflow-x: clip;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-balance;
+    letter-spacing: -0.02em;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--bk-pink-soft);
+    color: var(--bk-primary-deep);
+  }
+  [data-theme='book'] ::selection {
+    background: color-mix(in oklab, var(--book-marker) 70%, transparent);
+    color: var(--book-ink);
+  }
+}
+
+@layer utilities {
+  .bg-night-gradient {
+    background-image: var(--bk-night-gradient);
+  }
+  .bloom-pink {
+    background-image: radial-gradient(
+      60% 50% at 70% 0%,
+      rgb(251 113 133 / 0.22) 0%,
+      transparent 70%
+    );
+  }
+  .marker-highlight {
+    background-image: linear-gradient(
+      transparent 55%,
+      color-mix(in oklab, var(--book-marker) 75%, transparent) 55%
+    );
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+}
+
+/* Landing page motion primitives (no new tokens) */
+@keyframes landing-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+@keyframes landing-wave {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Book diagram drawing primitives; reduced motion collapses them to their end state. */
+@keyframes dg-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes dg-fade {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes dg-swipe {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes dg-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    stroke-width: 2.5;
+  }
+  50% {
+    opacity: 0.35;
+    stroke-width: 5;
+  }
+}
+.dg-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: dg-draw 700ms cubic-bezier(0.65, 0, 0.35, 1) var(--dg-delay, 0ms) forwards;
+}
+.dg-fade {
+  opacity: 0;
+  transform-box: fill-box;
+  animation: dg-fade 420ms ease-out var(--dg-delay, 0ms) forwards;
+}
+.dg-swipe {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: dg-swipe 520ms ease-out var(--dg-delay, 0ms) both;
+}
+.dg-pulse {
+  animation: dg-pulse 1.4s ease-in-out var(--dg-delay, 0ms) 3;
+}
+.dg-pen {
+  transition:
+    transform 600ms cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 300ms ease;
+}
+
+/* Reader opening sequence (CSS fallback for the 3D scene). */
+.intro-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  perspective: 1600px;
+}
+.intro-book {
+  --w: min(46vw, 230px);
+  position: relative;
+  width: var(--w);
+  aspect-ratio: 3 / 4;
+  transform-style: preserve-3d;
+  transform: translateY(24px) rotateX(10deg) rotateY(-18deg);
+  opacity: 0;
+  animation:
+    intro-arrive 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    intro-center 1300ms cubic-bezier(0.65, 0, 0.35, 1) 900ms forwards,
+    intro-push 1400ms cubic-bezier(0.65, 0, 0.35, 1) 2300ms forwards;
+}
+.intro-back,
+.intro-block,
+.intro-page,
+.intro-cover,
+.intro-cover-front,
+.intro-cover-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px 10px 10px 4px;
+}
+.intro-back {
+  background: #b45309;
+  transform: translateZ(-14px);
+  box-shadow: 0 40px 80px -20px rgb(0 0 0 / 0.8);
+}
+.intro-block {
+  inset: 3px 4px 3px 2px;
+  background: repeating-linear-gradient(90deg, #fbf3dc 0 2px, #efe2c2 2px 3px);
+  transform: translateZ(-2px);
+}
+.intro-page {
+  inset: 4px 6px 4px 2px;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #efe3c4, #fffaf0 25%);
+  transform: translateZ(calc(var(--i) * 0.5px));
+  animation: intro-fan 1100ms cubic-bezier(0.22, 1, 0.36, 1) calc(1700ms + var(--i) * 110ms) forwards;
+}
+.intro-cover {
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transform: translateZ(3px);
+  animation: intro-open 1300ms cubic-bezier(0.65, 0, 0.35, 1) 900ms forwards;
+}
+.intro-cover-front {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  overflow: hidden;
+  padding: 14% 12%;
+  text-align: center;
+  color: #92400e;
+  backface-visibility: hidden;
+  background: linear-gradient(150deg, #fcd34d 0%, #f59e0b 55%, #d97706 100%);
+  box-shadow:
+    inset 0 0 0 10px rgb(255 255 255 / 0.06),
+    inset 0 0 0 12px rgb(124 45 18 / 0.35),
+    inset 6px 0 10px rgb(124 45 18 / 0.35);
+}
+.intro-cover-back {
+  background: #fde68a;
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+}
+.intro-emboss {
+  text-shadow:
+    -1px -1px 0 rgb(255 247 214 / 0.7),
+    2px 2px 2px rgb(124 45 18 / 0.45);
+}
+.intro-sweep {
+  position: absolute;
+  inset: -20% auto -20% 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgb(255 250 230 / 0.55), transparent);
+  transform: translateX(-120%) skewX(-12deg);
+  animation: intro-sweep 1000ms ease-in-out 350ms forwards;
+}
+.intro-burst {
+  position: absolute;
+  width: min(80vw, 520px);
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgb(255 214 140 / 0.95), rgb(255 170 60 / 0.35) 40%, transparent 70%);
+  opacity: 0;
+  transform: scale(0.2);
+  mix-blend-mode: screen;
+  animation: intro-burst 1100ms cubic-bezier(0.65, 0, 0.35, 1) 2600ms forwards;
+}
+.intro-stage[data-playing='false'] .intro-book {
+  animation: intro-arrive 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.intro-stage[data-playing='false'] :is(.intro-page, .intro-cover, .intro-burst, .intro-sweep) {
+  animation: none;
+}
+@keyframes intro-arrive {
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateX(10deg) rotateY(-18deg);
+  }
+}
+@keyframes intro-center {
+  from {
+    opacity: 1;
+    transform: translateY(0) rotateX(10deg) rotateY(-18deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(calc(var(--w) / 2)) rotateX(22deg) rotateY(0deg);
+  }
+}
+@keyframes intro-push {
+  from {
+    opacity: 1;
+    transform: translateX(calc(var(--w) / 2)) rotateX(22deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(calc(var(--w) / 2)) rotateX(26deg) scale(1.35);
+  }
+}
+@keyframes intro-open {
+  to {
+    transform: translateZ(3px) rotateY(-172deg);
+  }
+}
+@keyframes intro-fan {
+  to {
+    transform: translateZ(calc(var(--i) * 0.5px)) rotateY(calc(-160deg + var(--i) * 32deg));
+  }
+}
+@keyframes intro-sweep {
+  to {
+    transform: translateX(320%) skewX(-12deg);
+  }
+}
+@keyframes intro-burst {
+  to {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+}
+
+/* Reader page turn: only the blank leaf surface and its shadow animate; page text never moves. */
+.page-turn-layer {
+  position: absolute;
+  inset: 0.5rem;
+  z-index: 5;
+  pointer-events: none;
+  perspective: 2200px;
+  overflow: hidden;
+  border-radius: 1.25rem;
+}
+@media (min-width: 1024px) {
+  .page-turn-layer {
+    inset: 0.75rem;
+    overflow: visible;
+  }
+}
+.page-turn-leaf {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(90deg, rgb(41 32 19 / 0.14), transparent 18%, transparent 82%, rgb(41 32 19 / 0.06)),
+    var(--book-page);
+  box-shadow: 0 10px 40px -10px rgb(41 32 19 / 0.35);
+  will-change: transform, opacity;
+}
+@media (min-width: 1024px) {
+  .page-turn-leaf {
+    width: 50%;
+    border-radius: 0.375rem 1.25rem 1.25rem 0.375rem;
+  }
+}
+.page-turn-leaf::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgb(41 32 19 / 0.28), transparent 55%);
+  opacity: 0;
+}
+.page-turn-shade {
+  position: absolute;
+  inset: 0;
+  border-radius: 1.25rem;
+  background: linear-gradient(90deg, rgb(41 32 19 / 0.22), transparent 70%);
+  opacity: 0;
+}
+.page-turn-layer[data-direction='next'] .page-turn-leaf {
+  animation: page-turn-next 620ms cubic-bezier(0.45, 0.05, 0.25, 1) forwards;
+}
+.page-turn-layer[data-direction='prev'] .page-turn-leaf {
+  animation: page-turn-prev 620ms cubic-bezier(0.45, 0.05, 0.25, 1) forwards;
+}
+.page-turn-layer .page-turn-leaf::after,
+.page-turn-layer .page-turn-shade {
+  animation: page-turn-shade 620ms ease-in-out forwards;
+}
+@keyframes page-turn-next {
+  0% {
+    transform: rotateY(0deg);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotateY(-180deg);
+    opacity: 0;
+  }
+}
+@keyframes page-turn-prev {
+  0% {
+    transform: rotateY(-180deg);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotateY(0deg);
+    opacity: 0;
+  }
+}
+@keyframes page-turn-shade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-turn-layer {
+    display: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Workspace preferences, applied to <html> by WorkspacePreferences. */
+[data-density='compact'] [data-workspace-stack] {
+  gap: 1rem;
+}
+[data-density='compact'] [data-workspace-stack] section {
+  padding: 1rem 1.25rem;
+}
+[data-reduce-motion='true'] *,
+[data-reduce-motion='true'] *::before,
+[data-reduce-motion='true'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+.bookey-exec-line {
+  background: color-mix(in oklab, var(--book-marker) 22%, transparent);
+}
+.bookey-exec-gutter {
+  border-left: 3px solid var(--book-marker);
+  margin-left: 3px;
+}

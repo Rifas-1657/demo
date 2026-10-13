@@ -1,0 +1,12 @@
+﻿python : ImportError while loading conftest 'C:\Users\moham\OneDrive\Pictures\Bookeyy-main\Bookeyy-main\backend\tests\conftest.py'.
+At line:1 char:150
++ ... rAction SilentlyContinue; python -m pytest -v --tb=short 2>&1 | Tee-O ...
++                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ImportError whi...s\conftest.py'.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+tests\conftest.py:38: in <module>
+    from app.main import app
+app\main.py:11: in <module>
+    from slowapi import _rate_limit_exceeded_handler
+E   ModuleNotFoundError: No module named 'slowapi'

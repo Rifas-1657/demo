@@ -1,0 +1,47 @@
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.design-cache/
+.v0-trash/
+.vercel/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Node / Next.js
+node_modules/
+.next/
+.next-build/
+out/
+dist/
+build/
+*.tsbuildinfo
+.DS_Store
+
+# Python (legacy iqrabook/backend)
+__pycache__/
+*.pyc
+.venv/
+venv/
+iqrabook/frontend/.next/
+
+# Local databases and vector stores
+*.db
+*.sqlite3
+chroma_db/
+
+# QA artifacts
+qa/shots/
+qa/results/
+
+# Backend runtime dirs (use S3 in production)
+backend/uploads/
+backend/audio_cache/
+backend/test_run.log
+backend/*.log
+iqrabook/frontend/.next/

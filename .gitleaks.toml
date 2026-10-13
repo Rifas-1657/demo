@@ -1,0 +1,31 @@
+# Gitleaks configuration for Bookey
+# https://github.com/gitleaks/gitleaks
+
+title = "Bookey Secrets Detection"
+
+[extend]
+# Use default gitleaks rules
+useDefault = true
+
+[allowlist]
+description = "Allowlist for false positives"
+paths = [
+    '''\.env\.example$''',
+    '''\.env\.local\.example$''',
+    '''/test[s]?/.*\.py$''',
+    '''/test[s]?/.*\.tsx?$''',
+]
+
+# Allow non-sensitive test values
+regexes = [
+    '''bookey-admin-dev''',  # Old test password being removed
+    '''test@example\.com''',
+    '''dummy[_-]?(key|token|secret)''',
+    '''(mock|fake|test)[_-]?(api[_-]?key|secret|token)''',
+]
+
+[[rules]]
+id = "env-file-committed"
+description = "Checks if .env files are committed"
+regex = '''\.env($|\.local$)'''
+path = '''\.env($|\.local$)'''

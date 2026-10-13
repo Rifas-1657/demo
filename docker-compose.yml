@@ -1,0 +1,106 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────
+#  Bookey — local development docker-compose
+#
+#  Usage:
+#    docker compose up            # start all services
+#    docker compose up backend    # start backend only
+#    docker compose down -v       # stop and remove volumes
+#
+#  Copy .env.example → .env and fill in your API keys.
+# ─────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL + pgvector ──────────────────────────────
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bookey
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bookey_dev}
+      POSTGRES_DB: bookey
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookey"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── MinIO (S3-compatible object storage) ──────────────
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_dev_secret}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console (http://localhost:9001)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Backend (FastAPI) ──────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      # Override SQLite URL with PostgreSQL
+      DATABASE_URL: postgresql+asyncpg://bookey:${POSTGRES_PASSWORD:-bookey_dev}@db:5432/bookey
+      # Object storage
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minio}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minio_dev_secret}
+      S3_BUCKET_UPLOADS: bookey-uploads
+      S3_BUCKET_AUDIO: bookey-audio
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      # For local development only — remove in prod (use S3)
+      - ./backend/uploads:/app/uploads
+      - ./backend/audio_cache:/app/audio_cache
+      - chroma_data:/app/chroma_db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Frontend (Next.js) ────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_BOOKEY_API_URL: http://localhost:8000
+      NEXT_PUBLIC_BOOKEY_CLIENT: ws
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  minio_data:
+  chroma_data:

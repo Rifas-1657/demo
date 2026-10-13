@@ -1,0 +1,69 @@
+﻿pnpm.exe : $ next build
+At C:\Users\moham\AppData\Roaming\npm\pnpm.ps1:14 char:3
++   & "$basedir/node_modules/pnpm/pnpm.exe"   $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ($ next build:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Γû▓ Next.js 16.4.0 (Turbopack)
+- Environments: .env.local
+Γ£ô Running next.config.mjs took 22ms
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 2.4s
+  Running TypeScript ...
+  Finished TypeScript in 4.9s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/40) ...
+  Generating static pages using 11 workers (10/40) 
+  Generating static pages using 11 workers (20/40) 
+  Generating static pages using 11 workers (30/40) 
+Γ£ô Generating static pages using 11 workers (40/40) in 1236ms
+  Finalizing page optimization ...
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ Γùï /about
+Γö£ Γùï /admin
+Γö£ Γùï /admin/courses
+Γö£ ╞Æ /admin/courses/[courseId]/edit
+Γö£ Γùï /admin/courses/new
+Γö£ Γùï /admin/knowledge-base
+Γö£ Γùï /admin/members
+Γö£ Γùï /admin/tutor-settings
+Γö£ ╞Æ /book/[courseId]
+Γö£ Γùï /courses
+Γö£   /courses/[courseId]
+Γöé Γö£ ΓùÅ /courses/python
+Γöé Γö£ ΓùÅ /courses/java
+Γöé Γö£ ΓùÅ /courses/machine-learning
+Γöé Γöö ΓùÅ /courses/web-development
+Γö£   /courses/[courseId]/survey
+Γöé Γö£ ΓùÅ /courses/python/survey
+Γöé Γö£ ΓùÅ /courses/java/survey
+Γöé Γö£ ΓùÅ /courses/machine-learning/survey
+Γöé Γöö ΓùÅ /courses/web-development/survey
+Γö£ ╞Æ /dashboard
+Γö£ Γùï /design-system
+Γö£ Γùï /faq
+Γö£ Γùï /features
+Γö£ Γùï /forgot-password
+Γö£ Γùï /how-it-works
+Γö£ Γùï /library
+Γö£ Γùï /login
+Γö£ Γùï /notifications
+Γö£ Γùï /pricing
+Γö£ Γùï /privacy
+Γö£ ╞Æ /profile
+Γö£ Γùï /progress
+Γö£ Γùï /search
+Γö£ Γùï /settings
+Γö£ Γùï /signup
+Γöö Γùï /terms
+
+
+Γùï  (Static)   prerendered as static content
+ΓùÅ  (SSG)      prerendered as static HTML (uses generateStaticParams)
+╞Æ  (Dynamic)  server-rendered on demand
+
