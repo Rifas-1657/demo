@@ -1,4 +1,4 @@
-﻿"""
+"""
 app/config.py â€” pydantic-settings configuration.
 All values have safe defaults so the server starts with no .env file (dev/test).
 """
@@ -13,8 +13,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    # Skip reading the .env file when APP_ENV=testing so that a malformed
+    # .env (e.g. bad CORS_ORIGINS syntax) never blocks the test runner.
+    # All test values are supplied via environment variable overrides.
+    _env_file = ".env" if __import__("os").environ.get("APP_ENV") != "testing" else None
+
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=".env" if __import__("os").environ.get("APP_ENV") != "testing" else None,
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
