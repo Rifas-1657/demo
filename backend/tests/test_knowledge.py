@@ -44,7 +44,7 @@ from app.knowledge.storage.local import LocalStorageBackend
 from app.knowledge.vectorstore.chroma import ChromaVectorStore
 from app.main import app
 
-pytestmark = pytest.mark.asyncio
+
 
 
 # ---------------------------------------------------------------------------

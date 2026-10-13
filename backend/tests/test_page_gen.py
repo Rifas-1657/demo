@@ -46,7 +46,7 @@ from app.page_gen.schema import (
 )
 from app.page_gen.verifier import verify_page
 
-pytestmark = pytest.mark.asyncio
+
 
 
 # ---------------------------------------------------------------------------

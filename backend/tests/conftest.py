@@ -25,6 +25,35 @@ if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
 # Disable structlog colors in test mode to avoid colorama ANSI handling on Windows
 os.environ.setdefault("NO_COLOR", "1")
 
+# ---------------------------------------------------------------------------
+# Test database isolation:
+# Guarantee tests NEVER touch or modify the development database (bookey_dev.db).
+# Always create and configure an isolated temporary SQLite database for tests.
+# ---------------------------------------------------------------------------
+import atexit
+import shutil
+import tempfile
+from pathlib import Path
+
+os.environ["APP_ENV"] = "testing"
+os.environ.setdefault("BOOKEY_ADMIN_DEV_PASSWORD", "bookey-admin-dev")
+os.environ.setdefault("SECRET_KEY", "test-secret-key-32chars-for-tests")
+
+# If DATABASE_URL is unset or points to bookey_dev.db, redirect to an isolated temp db
+_env_db = os.environ.get("DATABASE_URL", "")
+if not _env_db or "bookey_dev.db" in _env_db:
+    _test_db_dir = tempfile.mkdtemp(prefix="bookey_test_")
+    _test_db_path = Path(_test_db_dir) / "bookey_test.db"
+    os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_test_db_path.as_posix()}"
+
+    def _cleanup_test_db() -> None:
+        shutil.rmtree(_test_db_dir, ignore_errors=True)
+
+    atexit.register(_cleanup_test_db)
+
+from app.config import get_settings
+get_settings.cache_clear()
+
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
