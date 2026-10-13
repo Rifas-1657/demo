@@ -752,11 +752,22 @@ async def _seed_admin_and_invite(session: AsyncSession) -> None:
     """
     Create a dev admin user and a bootstrap learner invite.
     Only runs if no admin exists yet.
-    Logs the invite token so a developer can sign up their first learner.
+    Development: reads BOOKEY_ADMIN_DEV_PASSWORD or generates a random one (printed once).
+    Production: refuses to seed a default admin.
     """
     from sqlalchemy import select
     from datetime import datetime, timedelta, timezone
     import hashlib
+    import os
+
+    from app.config import get_settings
+
+    settings = get_settings()
+
+    # Production safety: never seed a default admin in production
+    if settings.app_env == "production":
+        _log.info("Production environment: skipping default admin seed")
+        return
 
     result = await session.execute(
         select(User).where(User.role == "admin")
@@ -766,12 +777,21 @@ async def _seed_admin_and_invite(session: AsyncSession) -> None:
 
     from app.auth.service import hash_password
 
+    # Get or generate admin password
+    admin_password = os.getenv("BOOKEY_ADMIN_DEV_PASSWORD")
+    if not admin_password:
+        # Generate a random password for development
+        admin_password = secrets.token_urlsafe(16)
+        password_was_generated = True
+    else:
+        password_was_generated = False
+
     # Create dev admin
     admin = User(
         email="admin@bookey.dev",
         display_name="Bookey Admin",
         role="admin",
-        password_hash=hash_password("bookey-admin-dev"),
+        password_hash=hash_password(admin_password),
     )
     session.add(admin)
     await session.flush()
@@ -790,12 +810,25 @@ async def _seed_admin_and_invite(session: AsyncSession) -> None:
     session.add(invite)
     await session.commit()
 
-    _log.warning(
-        "\n"
-        "=== DEV BOOTSTRAP ===\n"
-        "Admin user:  admin@bookey.dev  /  bookey-admin-dev\n"
-        "Learner invite token: %s\n"
-        "(Use this at POST /auth/signup to create the first learner account)\n"
-        "=====================",
-        raw_invite,
-    )
+    if password_was_generated:
+        _log.warning(
+            "\n"
+            "=== DEV BOOTSTRAP ===\n"
+            "Admin user:  admin@bookey.dev  /  %s\n"
+            "Learner invite token: %s\n"
+            "(Use this at POST /auth/signup to create the first learner account)\n"
+            "(Set BOOKEY_ADMIN_DEV_PASSWORD env var to use a fixed password)\n"
+            "=====================",
+            admin_password,
+            raw_invite,
+        )
+    else:
+        _log.warning(
+            "\n"
+            "=== DEV BOOTSTRAP ===\n"
+            "Admin user:  admin@bookey.dev  /  (from BOOKEY_ADMIN_DEV_PASSWORD)\n"
+            "Learner invite token: %s\n"
+            "(Use this at POST /auth/signup to create the first learner account)\n"
+            "=====================",
+            raw_invite,
+        )
