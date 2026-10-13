@@ -9,7 +9,7 @@ from httpx import AsyncClient
 from datetime import date, timedelta
 
 
-pytestmark = pytest.mark.asyncio
+
 
 
 # ---------------------------------------------------------------------------
