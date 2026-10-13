@@ -40,7 +40,7 @@ from app.tutor.safety import (
 )
 from app.tutor.graph import process_question, SCOPE_REFUSED, ANSWER_END, ANSWER_CHUNK
 
-pytestmark = pytest.mark.asyncio
+
 
 OFF_TOPIC_QUESTIONS = [
     "CSK match score enna?",
