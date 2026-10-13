@@ -148,10 +148,44 @@ async def test_admin_can_list_members(admin_http_client: AsyncClient):
 
 
 async def test_admin_can_create_invite(admin_http_client: AsyncClient):
+    """Admin can create a learner invite when seats are available.
+
+    This test ensures the learner count is below MAX_LEARNER_SEATS (4) before
+    attempting to create an invite, because seat_limits tests may have filled
+    the pool in a previous test session. Deactivates only test-created
+    '@test.com' accounts — never conftest or production accounts.
+    """
+    from sqlalchemy import select
+    from app.auth.service import count_learner_seats
+    from app.db.database import AsyncSessionLocal
+    from app.db.models import User
+
+    async with AsyncSessionLocal() as db:
+        count = await count_learner_seats(db)
+        if count >= 4:
+            # Deactivate excess @test.com learners (created by seat_limits tests)
+            result = await db.execute(
+                select(User).where(
+                    User.role == "learner",
+                    User.is_active == True,
+                    User.email.like("%@test.com"),
+                ).order_by(User.created_at)
+            )
+            test_learners = result.scalars().all()
+            excess = count - 3  # Bring to 3, leaving room for one more
+            for user in reversed(test_learners):
+                if excess <= 0:
+                    break
+                user.is_active = False
+                excess -= 1
+            await db.commit()
+
     resp = await admin_http_client.post(
         "/admin/members/invite", json={"role": "learner"}
     )
-    assert resp.status_code == 201
+    assert resp.status_code == 201, (
+        f"Expected 201, got {resp.status_code}: {resp.text}"
+    )
     data = resp.json()
     assert "token" in data
     assert len(data["token"]) > 10
