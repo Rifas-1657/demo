@@ -37,13 +37,18 @@ class CourseProgressSummary(BaseModel):
     total_pages: int
 
 
+from sqlalchemy.orm import selectinload
+
+
 @router.get("", response_model=list[CourseProgressSummary])
 async def list_progress(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[CourseProgressSummary]:
-    # Get all courses
-    courses_result = await db.execute(select(Course))
+    # Eagerly load chapters to avoid lazy-loading in async context (MissingGreenlet)
+    courses_result = await db.execute(
+        select(Course).options(selectinload(Course.chapters))
+    )
     courses = courses_result.scalars().all()
     result = []
     for course in courses:
