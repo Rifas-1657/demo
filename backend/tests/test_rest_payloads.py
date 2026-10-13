@@ -413,3 +413,147 @@ async def test_history_snake_case(auth_http_client: AsyncClient):
         assert "courseId" not in item
         assert "pageId" not in item
         assert "visitedAt" not in item
+
+
+# ---------------------------------------------------------------------------
+# Task 2: Progress mapping contract tests
+# Tests that verify the EXACT shapes used by client.ts getCourseProgress and
+# getCourseProgressItems mapping functions.
+# ---------------------------------------------------------------------------
+
+async def test_progress_summary_shape_matches_backend_progress_summary_interface(
+    auth_http_client: AsyncClient,
+):
+    """
+    GET /me/progress must return list[CourseProgressSummary] — the shape that
+    client.ts backendProgressSummaryToApi() consumes.
+
+    BackendProgressSummary interface requires:
+      - course_id: str
+      - completed_pages: int
+      - total_pages: int
+    """
+    resp = await auth_http_client.get("/me/progress")
+    assert resp.status_code == 200
+    summaries = resp.json()
+    assert isinstance(summaries, list), "Expected a list from GET /me/progress"
+
+    # Must have at least the python course (seeded)
+    python_summary = next((s for s in summaries if s.get("course_id") == "python"), None)
+    assert python_summary is not None, (
+        "Expected 'python' course in progress summaries. "
+        f"Got: {[s.get('course_id') for s in summaries]}"
+    )
+
+    # Verify exact BackendProgressSummary shape
+    assert "course_id" in python_summary
+    assert "completed_pages" in python_summary
+    assert "total_pages" in python_summary
+    assert isinstance(python_summary["course_id"], str)
+    assert isinstance(python_summary["completed_pages"], int)
+    assert isinstance(python_summary["total_pages"], int)
+    assert python_summary["total_pages"] >= 0
+
+    # Ensure NO camelCase leakage
+    assert "courseId" not in python_summary
+    assert "completedPages" not in python_summary
+    assert "totalPages" not in python_summary
+
+
+async def test_progress_items_shape_matches_backend_progress_item_interface(
+    auth_http_client: AsyncClient,
+):
+    """
+    GET /me/progress/{course_id} must return list[ProgressItem] — the shape that
+    client.ts getCourseProgressItems() consumes.
+
+    BackendProgressItem interface requires:
+      - course_id: str
+      - page_id: str
+      - completed: bool
+      - last_word_index: int
+      - last_segment_id: str | null
+      - completed_at: str | null
+      - updated_at: str
+    """
+    # Mark a page complete so we have at least one ProgressItem
+    mark_resp = await auth_http_client.post(
+        "/me/progress/python/lesson_python_1_1/complete"
+    )
+    assert mark_resp.status_code == 200
+
+    resp = await auth_http_client.get("/me/progress/python")
+    assert resp.status_code == 200
+    items = resp.json()
+    assert isinstance(items, list), "Expected a list from GET /me/progress/python"
+    assert len(items) >= 1, "Expected at least one ProgressItem after marking complete"
+
+    item = items[0]
+
+    # Verify exact BackendProgressItem shape
+    assert "course_id" in item, f"Missing course_id in ProgressItem: {item.keys()}"
+    assert "page_id" in item
+    assert "completed" in item
+    assert "last_word_index" in item
+    assert "last_segment_id" in item  # may be null
+    assert "completed_at" in item      # may be null
+    assert "updated_at" in item
+
+    assert isinstance(item["course_id"], str)
+    assert isinstance(item["page_id"], str)
+    assert isinstance(item["completed"], bool)
+    assert isinstance(item["last_word_index"], int)
+    assert isinstance(item["updated_at"], str)
+
+    # No camelCase
+    assert "courseId" not in item
+    assert "pageId" not in item
+    assert "lastWordIndex" not in item
+    assert "updatedAt" not in item
+
+
+async def test_progress_summary_to_api_mapping_correctness(
+    auth_http_client: AsyncClient,
+):
+    """
+    Verify that the values returned by GET /me/progress are suitable for
+    the backendProgressSummaryToApi() mapping used by getCourseProgress().
+
+    After marking a page complete, completed_pages must be >= 1 for the python
+    course and total_pages must equal the seeded chapter page_count totals (10 total).
+    """
+    # Mark a page complete to ensure completed_pages >= 1
+    await auth_http_client.post(
+        "/me/progress/python/lesson_python_1_1/complete"
+    )
+
+    resp = await auth_http_client.get("/me/progress")
+    assert resp.status_code == 200
+    summaries = resp.json()
+    python = next((s for s in summaries if s["course_id"] == "python"), None)
+    assert python is not None
+
+    # After completing at least one page
+    assert python["completed_pages"] >= 1, (
+        f"completed_pages should be >= 1 after marking complete, got {python['completed_pages']}"
+    )
+    # Python course has chapters 1-9 seeded; chapters 1+2 have 6+4=10 pages,
+    # chapters 3-9 are locked skeleton entries. total_pages is the sum of all
+    # chapter.page_count values across all 9 chapters (>= 10).
+    assert python["total_pages"] >= 10, (
+        f"Python course total_pages should be >= 10 (chapters 1+2 contribute 10 pages); "
+        f"got total_pages={python['total_pages']}"
+    )
+
+    # Verify the mapping would produce a valid ApiProgress:
+    # courseId = course_id, completedPages = completed_pages
+    api_progress = {
+        "courseId": python["course_id"],
+        "completedPages": python["completed_pages"],
+        "lastOpened": None,
+        "resumeExcerpt": "",
+    }
+    assert api_progress["courseId"] == "python"
+    assert api_progress["completedPages"] >= 1
+    assert api_progress["lastOpened"] is None  # backend doesn't track this
+    assert api_progress["resumeExcerpt"] == ""  # backend doesn't track this

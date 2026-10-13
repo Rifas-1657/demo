@@ -110,6 +110,30 @@ interface BackendNoteOut {
   updated_at: string
 }
 
+/**
+ * Matches backend CourseProgressSummary from GET /me/progress.
+ * Returns one entry per course with aggregate completed/total counts.
+ */
+interface BackendProgressSummary {
+  course_id: string
+  completed_pages: number
+  total_pages: number
+}
+
+/**
+ * Matches backend ProgressItem from GET /me/progress/{course_id}.
+ * Returns one entry per page the user has interacted with.
+ */
+interface BackendProgressItem {
+  course_id: string
+  page_id: string
+  completed: boolean
+  last_word_index: number
+  last_segment_id: string | null
+  completed_at: string | null
+  updated_at: string
+}
+
 // ---- Mapping helpers -------------------------------------------------------
 
 function backendBookmarkToApi(b: BackendBookmarkOut): ApiBookmark {
@@ -153,7 +177,23 @@ function apiNoteToBackend(n: Omit<ApiNote, 'id' | 'createdAt' | 'updatedAt'>): B
   }
 }
 
-// ---- Client ----------------------------------------------------------------
+/**
+ * Maps a backend CourseProgressSummary (from GET /me/progress) to ApiProgress.
+ *
+ * The backend does not store a per-course "last opened" timestamp or a resume
+ * excerpt — those fields only exist in the mock data. When calling the real
+ * API, lastOpened and resumeExcerpt are set to null/"" respectively so that
+ * callers can detect the backend mode and avoid showing stale mock values.
+ */
+function backendProgressSummaryToApi(s: BackendProgressSummary): ApiProgress {
+  return {
+    courseId: s.course_id,
+    completedPages: s.completed_pages,
+    lastOpened: null,
+    resumeExcerpt: '',
+  }
+}
+
 
 const BASE_URL = process.env.NEXT_PUBLIC_BOOKEY_API_URL?.replace(/\/$/, '') ?? null
 
@@ -230,16 +270,44 @@ export async function getCourse(id: string): Promise<ApiCourse | null> {
   }
 }
 
-/** GET /me/progress/:courseId */
+/**
+ * GET /me/progress — returns the course-level progress summary for a specific course.
+ *
+ * The backend endpoint GET /me/progress returns list[CourseProgressSummary] for all
+ * courses. We fetch the full list and filter to the requested courseId.
+ * GET /me/progress/{courseId} returns per-page ProgressItem rows, NOT a summary —
+ * do not use that endpoint here.
+ *
+ * When BASE_URL is unset, falls back to mock data (preserving lastOpened and resumeExcerpt).
+ * When calling the real API, lastOpened and resumeExcerpt are null/"" because the
+ * backend does not store those fields.
+ */
 export async function getCourseProgress(courseId: string): Promise<ApiProgress | null> {
   if (!BASE_URL) {
     const course = learningCourses.find((c) => c.id === courseId)
     return course ? mockProgress(course) : null
   }
   try {
-    return await apiFetch<ApiProgress>(`/me/progress/${courseId}`)
+    const summaries = await apiFetch<BackendProgressSummary[]>('/me/progress')
+    const match = summaries.find((s) => s.course_id === courseId)
+    return match ? backendProgressSummaryToApi(match) : null
   } catch {
     return null
+  }
+}
+
+/**
+ * GET /me/progress/:courseId — returns per-page progress items for a course.
+ *
+ * Use this when you need page-level detail (last_word_index, completed_at, etc.)
+ * rather than the course-level summary.
+ */
+export async function getCourseProgressItems(courseId: string): Promise<BackendProgressItem[]> {
+  if (!BASE_URL) return []
+  try {
+    return await apiFetch<BackendProgressItem[]>(`/me/progress/${courseId}`)
+  } catch {
+    return []
   }
 }
 
