@@ -36,6 +36,31 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     log.info("Starting Bookey backend B1 (%s)", settings.app_env)
 
+    # Production config validation: fail fast on insecure settings
+    if settings.app_env == "production":
+        errors = []
+        
+        # Check SECRET_KEY is not default/generated
+        if not __import__('os').getenv("SECRET_KEY"):
+            errors.append("SECRET_KEY environment variable must be explicitly set in production")
+        
+        # Check CORS doesn't contain localhost
+        localhost_origins = [o for o in settings.cors_origins if "localhost" in o or "127.0.0.1" in o]
+        if localhost_origins:
+            errors.append(f"CORS_ORIGINS contains localhost/127.0.0.1 in production: {localhost_origins}")
+        
+        # Check DATABASE_URL is not SQLite
+        if "sqlite" in settings.database_url.lower():
+            errors.append(f"DATABASE_URL is SQLite in production: {settings.database_url}")
+        
+        if errors:
+            for error in errors:
+                log.error("Production config error: %s", error)
+            raise RuntimeError(
+                f"Production configuration is invalid. {len(errors)} error(s) found:\n" +
+                "\n".join(f"  - {e}" for e in errors)
+            )
+    
     # Create all tables (no-op if they exist)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
