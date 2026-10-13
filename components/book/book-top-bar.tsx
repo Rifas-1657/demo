@@ -5,13 +5,17 @@ import {
   Bookmark,
   BookmarkCheck,
   BookOpen,
+  Loader2,
   Maximize,
   MessagesSquare,
   Minimize,
   PanelLeft,
+  Pause,
   Settings2,
   Sparkles,
+  Square,
   StickyNote,
+  Volume2,
   WifiOff,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -27,7 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
-import type { ReaderViewMode } from '@/types/book'
+import { NARRATION_RATES, type NarrationRate, type ReaderViewMode } from '@/types/book'
 
 const glassButton =
   'inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-foreground backdrop-blur-md transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40 aria-pressed:border-primary/50 aria-pressed:bg-primary/20 aria-pressed:text-primary'
@@ -53,6 +57,11 @@ interface BookTopBarProps {
   onFontScaleChange: (scale: number) => void
   fullscreen: { active: boolean; supported: boolean; toggle: () => void }
   disabled?: boolean
+  audioStatus?: 'idle' | 'speaking' | 'paused' | 'loading' | 'error'
+  onToggleListen?: () => void
+  onStopListen?: () => void
+  playbackRate?: NarrationRate
+  onRateChange?: (rate: NarrationRate) => void
 }
 
 const viewModes: { id: ReaderViewMode; label: string; icon: typeof BookOpen }[] = [
@@ -143,6 +152,86 @@ export function BookTopBar(props: BookTopBarProps) {
         </div>
 
         <div className="flex items-center gap-1.5">
+          {props.onToggleListen && (
+            <div className="flex items-center gap-1" role="group" aria-label="Audio narration">
+              {props.audioStatus && props.audioStatus !== 'idle' && (
+                <>
+                  {props.onStopListen && (
+                    <Hint label="Stop narration" side="bottom">
+                      <button
+                        type="button"
+                        className={glassButton}
+                        aria-label="Stop narration"
+                        onClick={props.onStopListen}
+                      >
+                        <Square className="size-3.5" aria-hidden="true" />
+                      </button>
+                    </Hint>
+                  )}
+                  {props.playbackRate && props.onRateChange && (
+                    <Hint label={`Speed ${props.playbackRate}×`} side="bottom">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = NARRATION_RATES[(NARRATION_RATES.indexOf(props.playbackRate ?? 1) + 1) % NARRATION_RATES.length]
+                          props.onRateChange?.(next)
+                        }}
+                        aria-label={`Narration speed ${props.playbackRate} times`}
+                        className="rounded-full border border-white/10 bg-white/5 px-2 py-1 font-mono text-xs font-semibold tabular-nums hover:bg-white/10"
+                      >
+                        {props.playbackRate}×
+                      </button>
+                    </Hint>
+                  )}
+                </>
+              )}
+              <Hint
+                label={
+                  props.audioStatus === 'loading'
+                    ? 'Synthesizing speech…'
+                    : props.audioStatus === 'speaking'
+                      ? 'Pause narration'
+                      : props.audioStatus === 'paused'
+                        ? 'Resume narration'
+                        : props.audioStatus === 'error'
+                          ? 'Audio service unavailable'
+                          : 'Listen to this page'
+                }
+                side="bottom"
+              >
+                <button
+                  type="button"
+                  onClick={props.onToggleListen}
+                  disabled={disabled || props.audioStatus === 'loading'}
+                  aria-label={props.audioStatus === 'speaking' ? 'Pause narration' : 'Listen to this page'}
+                  className={cn(
+                    'inline-flex h-9 items-center gap-1.5 rounded-full border border-book-orange/40 bg-book-orange/15 px-3 text-xs font-semibold text-foreground backdrop-blur-md transition-colors hover:bg-book-orange/25 focus-visible:ring-2 focus-visible:ring-book-orange focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40',
+                    props.audioStatus === 'speaking' && 'border-book-orange bg-book-orange/30 text-book-marker',
+                  )}
+                >
+                  {props.audioStatus === 'loading' ? (
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                  ) : props.audioStatus === 'speaking' ? (
+                    <Pause className="size-3.5 fill-current" aria-hidden="true" />
+                  ) : (
+                    <Volume2 className="size-3.5" aria-hidden="true" />
+                  )}
+                  <span>
+                    {props.audioStatus === 'loading'
+                      ? 'Loading…'
+                      : props.audioStatus === 'speaking'
+                        ? 'Pause'
+                        : props.audioStatus === 'paused'
+                          ? 'Resume'
+                          : props.audioStatus === 'error'
+                            ? 'Unavailable'
+                            : 'Listen'}
+                  </span>
+                </button>
+              </Hint>
+            </div>
+          )}
+
           <Hint label={props.bookmarked ? 'Remove bookmark' : 'Bookmark this page'} side="bottom">
             <button
               type="button"

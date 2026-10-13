@@ -71,7 +71,7 @@ class GeminiTTSProvider(TextToSpeech):
                 {
                     "parts": [
                         {
-                            "text": f"{self._style}: {normalized}" if self._style else normalized
+                            "text": normalized
                         }
                     ]
                 }

@@ -383,9 +383,27 @@ export async function search(query: string, courseId?: string): Promise<ApiSearc
   return apiFetch<ApiSearchResult[]>(`/search?${params}`)
 }
 
-/** Returns true when a live API URL is configured. */
+/**
+ * Returns the effective API base URL.
+ * Checks NEXT_PUBLIC_BOOKEY_API_URL first; in a browser environment on localhost,
+ * falls back to the running backend at http://127.0.0.1:8000 so voice works out of the box.
+ */
+export function getApiBaseUrl(): string | null {
+  if (process.env.NEXT_PUBLIC_BOOKEY_API_URL) {
+    return process.env.NEXT_PUBLIC_BOOKEY_API_URL.replace(/\/$/, '')
+  }
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://127.0.0.1:8000'
+    }
+  }
+  return null
+}
+
+/** Returns true when a live API URL is configured or reachable. */
 export function isApiConfigured(): boolean {
-  return BASE_URL !== null
+  return getApiBaseUrl() !== null
 }
 
 // ---- Voice (TTS & STT) ----------------------------------------------------
@@ -411,14 +429,15 @@ export async function synthesizeSpeech(
   voice?: string,
   speed: number = 1.0,
 ): Promise<Blob> {
-  if (!BASE_URL) throw new Error('API_URL_NOT_SET')
+  const baseUrl = getApiBaseUrl()
+  if (!baseUrl) throw new Error('API_URL_NOT_SET')
   const token = getAuthToken()
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${BASE_URL}/api/voice/tts`, {
+  const res = await fetch(`${baseUrl}/api/voice/tts`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ text, voice, speed }),
@@ -438,18 +457,25 @@ export async function transcribeAudio(
   file: Blob,
   language?: string,
 ): Promise<ApiSTTResponse> {
-  if (!BASE_URL) throw new Error('API_URL_NOT_SET')
+  const baseUrl = getApiBaseUrl()
+  if (!baseUrl) throw new Error('API_URL_NOT_SET')
   const token = getAuthToken()
   const headers: Record<string, string> = {}
   if (token) headers['Authorization'] = `Bearer ${token}`
 
+  let filename = 'recording.webm'
+  if (file.type.includes('wav')) filename = 'recording.wav'
+  else if (file.type.includes('ogg')) filename = 'recording.ogg'
+  else if (file.type.includes('mp4') || file.type.includes('m4a')) filename = 'recording.m4a'
+  else if (file.type.includes('mp3') || file.type.includes('mpeg')) filename = 'recording.mp3'
+
   const formData = new FormData()
-  formData.append('file', file, 'recording.webm')
+  formData.append('file', file, filename)
   if (language) {
     formData.append('language', language)
   }
 
-  const res = await fetch(`${BASE_URL}/api/voice/stt`, {
+  const res = await fetch(`${baseUrl}/api/voice/stt`, {
     method: 'POST',
     headers,
     body: formData,

@@ -73,6 +73,13 @@ async def test_tts_success(monkeypatch, mock_gemini):
         assert resp.headers["content-type"] == "audio/wav"
         assert resp.content == mock_wav_bytes
 
+        # Regression: Gemini payload text must only be the normalized content, without prompt prefix leaking
+        call_kwargs = mock_gemini.post.call_args.kwargs
+        sent_json = call_kwargs["json"]
+        sent_text = sent_json["contents"][0]["parts"][0]["text"]
+        assert sent_text == "Welcome to Python variables and data types"
+        assert "style" not in sent_text.lower()
+
 
 @pytest.mark.asyncio
 async def test_tts_json_format(monkeypatch, mock_gemini):

@@ -53,7 +53,46 @@ export function createTtsAudioPlayer(): AudioPlayer {
   let currentMuted = false
   let state: 'stopped' | 'speaking' | 'paused' = 'stopped'
   const urlCache = new Map<string, string>()
-  let currentRequestId = 0
+  const inFlight = new Set<string>()
+
+  function fetchAudio(text: string): Promise<string> {
+    const trimmed = text.trim()
+    if (!trimmed) return Promise.reject(new Error('Empty text'))
+    const cached = urlCache.get(trimmed)
+    if (cached) return Promise.resolve(cached)
+
+    if (inFlight.has(trimmed)) {
+      return new Promise((resolve, reject) => {
+        let attempts = 0
+        const check = setInterval(() => {
+          attempts++
+          const c = urlCache.get(trimmed)
+          if (c) {
+            clearInterval(check)
+            resolve(c)
+          } else if (!inFlight.has(trimmed) || attempts > 100) {
+            clearInterval(check)
+            reject(new Error('Fetch timed out or failed'))
+          }
+        }, 100)
+      })
+    }
+
+    inFlight.add(trimmed)
+    return import('@/lib/api/client')
+      .then(({ synthesizeSpeech }) => synthesizeSpeech(trimmed, undefined, currentRate))
+      .then((blob) => {
+        inFlight.delete(trimmed)
+        const objectUrl = URL.createObjectURL(blob)
+        urlCache.set(trimmed, objectUrl)
+        return objectUrl
+      })
+      .catch((err) => {
+        inFlight.delete(trimmed)
+        console.warn('[tts-player] speech synthesis failed:', err)
+        throw err
+      })
+  }
 
   return {
     kind: 'tts',
@@ -63,45 +102,38 @@ export function createTtsAudioPlayer(): AudioPlayer {
       const text = segment.text.trim()
       if (!text) return
 
-      const thisRequestId = ++currentRequestId
+      // If current audio is already playing this exact text, keep playing
+      if (currentAudio && !currentAudio.paused && (currentAudio as unknown as { _text?: string })._text === text) {
+        return
+      }
 
-      // Stop previous playback
+      // Stop previous playback if different text
       if (currentAudio) {
         currentAudio.pause()
         currentAudio = null
       }
 
-      // Check cache first
-      const cachedUrl = urlCache.get(text)
-      if (cachedUrl) {
-        const audio = new Audio(cachedUrl)
-        currentAudio = audio
-        audio.playbackRate = currentRate
-        audio.muted = currentMuted
-        if (state === 'speaking') {
-          audio.play().catch(() => {})
-        }
-        return
-      }
+      fetchAudio(text)
+        .then((objectUrl) => {
+          if (state !== 'speaking') return
+          // If another audio has already started and is playing, don't clobber it
+          if (currentAudio && !currentAudio.paused) return
 
-      // Dynamically fetch from backend TTS API
-      import('@/lib/api/client')
-        .then(({ synthesizeSpeech }) => synthesizeSpeech(text, undefined, currentRate))
-        .then((blob) => {
-          if (thisRequestId !== currentRequestId) return
-          const objectUrl = URL.createObjectURL(blob)
-          urlCache.set(text, objectUrl)
           const audio = new Audio(objectUrl)
+          ;(audio as unknown as { _text?: string })._text = text
           currentAudio = audio
           audio.playbackRate = currentRate
           audio.muted = currentMuted
-          if (state === 'speaking') {
-            audio.play().catch(() => {})
+          audio.onended = () => {
+            if (currentAudio === audio) {
+              currentAudio = null
+            }
           }
+          audio.play().catch((err) => {
+            console.warn('[tts-player] Playback failed (browser policy or decode error):', err)
+          })
         })
-        .catch((err) => {
-          console.warn('[tts-player] speech synthesis failed:', err)
-        })
+        .catch(() => {})
     },
     pause() {
       state = 'paused'
@@ -111,13 +143,14 @@ export function createTtsAudioPlayer(): AudioPlayer {
     },
     resume() {
       state = 'speaking'
-      if (currentAudio) {
-        currentAudio.play().catch(() => {})
+      if (currentAudio && currentAudio.paused) {
+        currentAudio.play().catch((err) => {
+          console.warn('[tts-player] Resume playback failed:', err)
+        })
       }
     },
     stop() {
       state = 'stopped'
-      currentRequestId++
       if (currentAudio) {
         currentAudio.pause()
         currentAudio.currentTime = 0
@@ -138,7 +171,6 @@ export function createTtsAudioPlayer(): AudioPlayer {
     },
     dispose() {
       state = 'stopped'
-      currentRequestId++
       if (currentAudio) {
         currentAudio.pause()
         currentAudio = null

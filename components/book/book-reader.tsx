@@ -162,6 +162,29 @@ export function BookReader({ course, pages, initialChapter, initialPage }: BookR
   })
   const cueVisuals = streamingEnabled ? deriveCueVisuals(stream.reachedCues, page) : undefined
 
+  const audioStatus: 'idle' | 'speaking' | 'paused' | 'loading' | 'error' =
+    stream.status === 'speaking'
+      ? 'speaking'
+      : stream.status === 'paused'
+        ? 'paused'
+        : 'idle'
+
+  const handleToggleListen = useCallback(() => {
+    if (viewMode !== 'guided') {
+      setViewMode('guided')
+    }
+    if (stream.status === 'completed') {
+      stream.restart()
+    } else {
+      stream.toggle()
+    }
+  }, [viewMode, setViewMode, stream])
+
+  const handleStopListen = useCallback(() => {
+    stream.pause()
+    stream.restart()
+  }, [stream])
+
   const tutor = useCourseTutor({
     courseId: course.id,
     courseTitle: course.title,
@@ -334,6 +357,11 @@ export function BookReader({ course, pages, initialChapter, initialPage }: BookR
         onFontScaleChange={setFontScale}
         fullscreen={fullscreen}
         disabled={!page}
+        audioStatus={audioStatus}
+        onToggleListen={handleToggleListen}
+        onStopListen={handleStopListen}
+        playbackRate={narrationRate}
+        onRateChange={setNarrationRate}
       />
 
       <div className="relative z-10 flex min-h-0 flex-1">
