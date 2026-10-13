@@ -29,7 +29,7 @@ from app.voice.cache import cache_get, cache_set, _cache_key
 from app.voice.normalizer import normalize_for_tts, estimate_word_timings
 from app.voice.tts.silent import SilentTTS
 
-pytestmark = pytest.mark.asyncio
+
 
 
 # ---------------------------------------------------------------------------
