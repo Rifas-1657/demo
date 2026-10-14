@@ -1,0 +1,727 @@
+{
+  "metadata": {
+    "title": "Bookey Local TTS Audition Dataset",
+    "version": "1.0",
+    "generated_at": "2026-10-14 17:17:13",
+    "system_info": {
+      "python_version": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+      "platform": "win32",
+      "torch_version": "2.13.0+cpu",
+      "cuda_available": false,
+      "gpu_name": "None (Using CPU)",
+      "timestamp": "2026-10-14 17:17:13"
+    },
+    "target_test_sentences": {
+      "test_a": {
+        "title": "Test A — Natural Conversational Tanglish",
+        "semantic_meaning": "Greeting and introduction to learning Python variables today.",
+        "romanized": "Vanakkam! Innaiku namma Python variables pathi kathukkaporom.",
+        "tamil_english_loanwords": "வணக்கம்! இன்னைக்கு நம்ம Python variables பத்தி கத்துக்கப்போறோம்.",
+        "tamil_phonetic": "வணக்கம்! இன்னைக்கு நம்ம பைதான் வேரியபிள்ஸ் பத்தி கத்துக்கப்போறோம்."
+      },
+      "test_b": {
+        "title": "Test B — English Technical Vocabulary",
+        "semantic_meaning": "Explanation of React useState hook re-rendering a component on state update.",
+        "romanized": "React-la useState hook use pannumbodhu, state update aana component re-render aagum.",
+        "tamil_english_loanwords": "React-ல useState hook use பண்ணும்போது, state update ஆனா component re-render ஆகும்.",
+        "tamil_phonetic": "ரியாக்ட்-ல யூஸ் ஸ்டேட் ஹூக் யூஸ் பண்ணும்போது, ஸ்டேட் அப்டேட் ஆனா காம்போனன்ட் ரீ-ரெண்டர் ஆகும்."
+      },
+      "test_c": {
+        "title": "Test C — Longer Educational Explanation",
+        "semantic_meaning": "Machine learning model learning patterns from training data and generating predictions for new input.",
+        "romanized": "Machine learning-la model training data-la irundhu patterns learn pannum. Appuram pudhu input-ku prediction generate pannum.",
+        "tamil_english_loanwords": "Machine learning-ல model training data-ல இருந்து patterns learn பண்ணும். அப்புறம் புது input-க்கு prediction generate பண்ணும்.",
+        "tamil_phonetic": "மெஷின் லேர்னிங்-ல மாடல் டிரெய்னிங் டேட்டா-ல இருந்து பேட்டர்ன்ஸ் லேர்ன் பண்ணும். அப்புறம் புது இன்புட்-க்கு பிரடிக்ஷன் ஜெனரேட் பண்ணும்."
+      }
+    }
+  },
+  "candidates": {
+    "candidate_1": {
+      "model_id": "prasadvittaldev/pocket-tts-tamil-female-audiobook",
+      "display_name": "Pocket TTS Tamil Audiobook (Geetha)",
+      "license": "MIT (Permissive, commercial use allowed)",
+      "architecture": "pocket-tts (6-layer flow-matching + Mimi codec)",
+      "status": "SUCCESS",
+      "device": "CPU (Quantized int8)",
+      "load_time_s": 3.1,
+      "weights_size": "~418 MB float32 safetensors (86 MB int4 available)",
+      "samples": [
+        {
+          "test_id": "test_a",
+          "variant": "romanized",
+          "script_type": "Romanized Tanglish (Latin)",
+          "input_text": "Vanakkam! Innaiku namma Python variables pathi kathukkaporom.",
+          "output_file": "pocket_tts_test_a_roman.wav",
+          "generation_time_s": 4.05,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 6.8,
+            "sample_rate": 24000,
+            "samples": 163200,
+            "file_size_bytes": 326444,
+            "peak_amplitude": 0.2384,
+            "rms_amplitude": 0.03408,
+            "browser_playable": true
+          }
+        },
+        {
+          "test_id": "test_a",
+          "variant": "tamil_script",
+          "script_type": "Tamil Script + English loanwords",
+          "input_text": "வணக்கம்! இன்னைக்கு நம்ம Python variables பத்தி கத்துக்கப்போறோம்.",
+          "output_file": "pocket_tts_test_a_tamil.wav",
+          "generation_time_s": 3.35,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 5.36,
+            "sample_rate": 24000,
+            "samples": 128640,
+            "file_size_bytes": 257324,
+            "peak_amplitude": 0.21915,
+            "rms_amplitude": 0.03248,
+            "browser_playable": true
+          }
+        },
+        {
+          "test_id": "test_b",
+          "variant": "romanized",
+          "script_type": "Romanized Tanglish (Latin)",
+          "input_text": "React-la useState hook use pannumbodhu, state update aana component re-render aagum.",
+          "output_file": "pocket_tts_test_b_roman.wav",
+          "generation_time_s": 5.12,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 8.16,
+            "sample_rate": 24000,
+            "samples": 195840,
+            "file_size_bytes": 391724,
+            "peak_amplitude": 0.25165,
+            "rms_amplitude": 0.04364,
+            "browser_playable": true
+          }
+        },
+        {
+          "test_id": "test_b",
+          "variant": "tamil_script",
+          "script_type": "Tamil Script + English loanwords",
+          "input_text": "React-ல useState hook use பண்ணும்போது, state update ஆனா component re-render ஆகும்.",
+          "output_file": "pocket_tts_test_b_tamil.wav",
+          "generation_time_s": 4.69,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 7.84,
+            "sample_rate": 24000,
+            "samples": 188160,
+            "file_size_bytes": 376364,
+            "peak_amplitude": 0.29352,
+            "rms_amplitude": 0.04541,
+            "browser_playable": true
+          }
+        },
+        {
+          "test_id": "test_c",
+          "variant": "romanized",
+          "script_type": "Romanized Tanglish (Latin)",
+          "input_text": "Machine learning-la model training data-la irundhu patterns learn pannum. Appuram pudhu input-ku prediction generate pannum.",
+          "output_file": "pocket_tts_test_c_roman.wav",
+          "generation_time_s": 4.5,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 7.52,
+            "sample_rate": 24000,
+            "samples": 180480,
+            "file_size_bytes": 361004,
+            "peak_amplitude": 0.23312,
+            "rms_amplitude": 0.04489,
+            "browser_playable": true
+          }
+        },
+        {
+          "test_id": "test_c",
+          "variant": "tamil_script",
+          "script_type": "Tamil Script + English loanwords",
+          "input_text": "Machine learning-ல model training data-ல இருந்து patterns learn பண்ணும். அப்புறம் புது input-க்கு prediction generate பண்ணும்.",
+          "output_file": "pocket_tts_test_c_tamil.wav",
+          "generation_time_s": 4.73,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 7.84,
+            "sample_rate": 24000,
+            "samples": 188160,
+            "file_size_bytes": 376364,
+            "peak_amplitude": 0.31964,
+            "rms_amplitude": 0.05176,
+            "browser_playable": true
+          }
+        }
+      ],
+      "technical_notes": "Single fixed voice 'geetha'. Runs faster than real-time (~1.9x-2.2x real-time on Ryzen 5). Handles Romanized text and Tamil script. SentencePiece tokenizer trained on 4000 bins."
+    },
+    "candidate_2": {
+      "model_id": "Jeyaram-K/piper-tamil-voices",
+      "display_name": "Piper Tamil Voices (ta_IN-ValluvarNeural-medium)",
+      "license": "Apache 2.0 (Permissive, commercial use allowed)",
+      "architecture": "VITS (ONNX Runtime, espeak-ng 'ta' phonemizer)",
+      "status": "SUCCESS",
+      "device": "CPU (ONNX Runtime)",
+      "load_time_s": 1.85,
+      "weights_size": "60.5 MB ONNX model",
+      "samples": [
+        {
+          "test_id": "test_a",
+          "variant": "tamil_with_english_terms",
+          "script_type": "Tamil Script + English loanwords (espeak fallback)",
+          "input_text": "வணக்கம்! இன்னைக்கு நம்ம Python variables பத்தி கத்துக்கப்போறோம்.",
+          "output_file": "piper_valluvar_test_a_english_loanwords.wav",
+          "generation_time_s": 0.31,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 4.331,
+            "sample_rate": 22050,
+            "samples": 95488,
+            "file_size_bytes": 191020,
+            "peak_amplitude": 1.0,
+            "rms_amplitude": 0.15448,
+            "browser_playable": true
+          }
+        },
+        {
+          "test_id": "test_a",
+          "variant": "tamil_phonetic",
+          "script_type": "Tamil Script with Phonetic Loanword Transliteration",
+          "input_text": "வணக்கம்! இன்னைக்கு நம்ம பைதான் வேரியபிள்ஸ் பத்தி கத்துக்கப்போறோம்.",
+          "output_file": "piper_valluvar_test_a_phonetic.wav",
+          "generation_time_s": 0.27,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 4.748,
+            "sample_rate": 22050,
+            "samples": 104704,
+            "file_size_bytes": 209452,
+            "peak_amplitude": 1.0,
+            "rms_amplitude": 0.15255,
+            "browser_playable": true
+          }
+        },
+        {
+          "test_id": "test_b",
+          "variant": "tamil_with_english_terms",
+          "script_type": "Tamil Script + English loanwords (espeak fallback)",
+          "input_text": "React-ல useState hook use பண்ணும்போது, state update ஆனா component re-render ஆகும்.",
+          "output_file": "piper_valluvar_test_b_english_loanwords.wav",
+          "generation_time_s": 0.34,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 5.642,
+            "sample_rate": 22050,
+            "samples": 124416,
+            "file_size_bytes": 248876,
+            "peak_amplitude": 0.99997,
+            "rms_amplitude": 0.17549,
+            "browser_playable": true
+          }
+        },
+        {
+          "test_id": "test_b",
+          "variant": "tamil_phonetic",
+          "script_type": "Tamil Script with Phonetic Loanword Transliteration",
+          "input_text": "ரியாக்ட்-ல யூஸ் ஸ்டேட் ஹூக் யூஸ் பண்ணும்போது, ஸ்டேட் அப்டேட் ஆனா காம்போனன்ட் ரீ-ரெண்டர் ஆகும்.",
+          "output_file": "piper_valluvar_test_b_phonetic.wav",
+          "generation_time_s": 0.33,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 5.735,
+            "sample_rate": 22050,
+            "samples": 126464,
+            "file_size_bytes": 252972,
+            "peak_amplitude": 1.0,
+            "rms_amplitude": 0.16693,
+            "browser_playable": true
+          }
+        },
+        {
+          "test_id": "test_c",
+          "variant": "tamil_with_english_terms",
+          "script_type": "Tamil Script + English loanwords (espeak fallback)",
+          "input_text": "Machine learning-ல model training data-ல இருந்து patterns learn பண்ணும். அப்புறம் புது input-க்கு prediction generate பண்ணும்.",
+          "output_file": "piper_valluvar_test_c_english_loanwords.wav",
+          "generation_time_s": 0.52,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 7.082,
+            "sample_rate": 22050,
+            "samples": 156160,
+            "file_size_bytes": 312364,
+            "peak_amplitude": 1.0,
+            "rms_amplitude": 0.18529,
+            "browser_playable": true
+          }
+        },
+        {
+          "test_id": "test_c",
+          "variant": "tamil_phonetic",
+          "script_type": "Tamil Script with Phonetic Loanword Transliteration",
+          "input_text": "மெஷின் லேர்னிங்-ல மாடல் டிரெய்னிங் டேட்டா-ல இருந்து பேட்டர்ன்ஸ் லேர்ன் பண்ணும். அப்புறம் புது இன்புட்-க்கு பிரடிக்ஷன் ஜெனரேட் பண்ணும்.",
+          "output_file": "piper_valluvar_test_c_phonetic.wav",
+          "generation_time_s": 0.45,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 7.581,
+            "sample_rate": 22050,
+            "samples": 167168,
+            "file_size_bytes": 334380,
+            "peak_amplitude": 0.99997,
+            "rms_amplitude": 0.14851,
+            "browser_playable": true
+          }
+        }
+      ],
+      "technical_notes": "Trained for Piper TTS using VITS architecture. Lightweight 60 MB model with rapid CPU inference (<1.5s). Uses espeak-ng Tamil phonemes; English words benefit from phonetic Tamil spelling."
+    },
+    "candidate_3": {
+      "model_id": "facebook/mms-tts-tam",
+      "display_name": "Meta MMS-TTS Tamil (facebook/mms-tts-tam)",
+      "license": "CC-BY-NC 4.0 (Non-Commercial Only — NOT commercially usable for Bookey)",
+      "architecture": "VITS (Variational Inference Text-to-Speech)",
+      "status": "SUCCESS",
+      "device": "CPU (PyTorch)",
+      "load_time_s": 4.72,
+      "weights_size": "145 MB safetensors",
+      "samples": [
+        {
+          "test_id": "test_a",
+          "variant": "tamil_with_english_terms",
+          "script_type": "Tamil Script + English loanwords (Note: English chars mapped to <unk>)",
+          "input_text": "வணக்கம்! இன்னைக்கு நம்ம Python variables பத்தி கத்துக்கப்போறோம்.",
+          "output_file": "mms_tam_test_a_english_loanwords.wav",
+          "generation_time_s": 2.79,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 3.472,
+            "sample_rate": 16000,
+            "samples": 55552,
+            "file_size_bytes": 111148,
+            "peak_amplitude": 0.66446,
+            "rms_amplitude": 0.1124,
+            "browser_playable": true
+          },
+          "observation": "MMS-TAM vocabulary lacks Latin letters; English words (Python, React, useState, etc.) are converted to token ID 15 (<unk>) and rendered as silences or muted pauses."
+        },
+        {
+          "test_id": "test_a",
+          "variant": "tamil_phonetic",
+          "script_type": "Tamil Script with Phonetic Loanword Transliteration",
+          "input_text": "வணக்கம்! இன்னைக்கு நம்ம பைதான் வேரியபிள்ஸ் பத்தி கத்துக்கப்போறோம்.",
+          "output_file": "mms_tam_test_a_phonetic.wav",
+          "generation_time_s": 4.54,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 5.328,
+            "sample_rate": 16000,
+            "samples": 85248,
+            "file_size_bytes": 170540,
+            "peak_amplitude": 0.65698,
+            "rms_amplitude": 0.13198,
+            "browser_playable": true
+          },
+          "observation": "With phonetic transliteration, MMS-TAM articulates all loanwords accurately using its native character inventory."
+        },
+        {
+          "test_id": "test_b",
+          "variant": "tamil_with_english_terms",
+          "script_type": "Tamil Script + English loanwords (Note: English chars mapped to <unk>)",
+          "input_text": "React-ல useState hook use பண்ணும்போது, state update ஆனா component re-render ஆகும்.",
+          "output_file": "mms_tam_test_b_english_loanwords.wav",
+          "generation_time_s": 2.04,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 2.592,
+            "sample_rate": 16000,
+            "samples": 41472,
+            "file_size_bytes": 82988,
+            "peak_amplitude": 0.70389,
+            "rms_amplitude": 0.16326,
+            "browser_playable": true
+          },
+          "observation": "MMS-TAM vocabulary lacks Latin letters; English words (Python, React, useState, etc.) are converted to token ID 15 (<unk>) and rendered as silences or muted pauses."
+        },
+        {
+          "test_id": "test_b",
+          "variant": "tamil_phonetic",
+          "script_type": "Tamil Script with Phonetic Loanword Transliteration",
+          "input_text": "ரியாக்ட்-ல யூஸ் ஸ்டேட் ஹூக் யூஸ் பண்ணும்போது, ஸ்டேட் அப்டேட் ஆனா காம்போனன்ட் ரீ-ரெண்டர் ஆகும்.",
+          "output_file": "mms_tam_test_b_phonetic.wav",
+          "generation_time_s": 7.07,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 8.928,
+            "sample_rate": 16000,
+            "samples": 142848,
+            "file_size_bytes": 285740,
+            "peak_amplitude": 0.66016,
+            "rms_amplitude": 0.11552,
+            "browser_playable": true
+          },
+          "observation": "With phonetic transliteration, MMS-TAM articulates all loanwords accurately using its native character inventory."
+        },
+        {
+          "test_id": "test_c",
+          "variant": "tamil_with_english_terms",
+          "script_type": "Tamil Script + English loanwords (Note: English chars mapped to <unk>)",
+          "input_text": "Machine learning-ல model training data-ல இருந்து patterns learn பண்ணும். அப்புறம் புது input-க்கு prediction generate பண்ணும்.",
+          "output_file": "mms_tam_test_c_english_loanwords.wav",
+          "generation_time_s": 3.17,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 4.016,
+            "sample_rate": 16000,
+            "samples": 64256,
+            "file_size_bytes": 128556,
+            "peak_amplitude": 0.73935,
+            "rms_amplitude": 0.14236,
+            "browser_playable": true
+          },
+          "observation": "MMS-TAM vocabulary lacks Latin letters; English words (Python, React, useState, etc.) are converted to token ID 15 (<unk>) and rendered as silences or muted pauses."
+        },
+        {
+          "test_id": "test_c",
+          "variant": "tamil_phonetic",
+          "script_type": "Tamil Script with Phonetic Loanword Transliteration",
+          "input_text": "மெஷின் லேர்னிங்-ல மாடல் டிரெய்னிங் டேட்டா-ல இருந்து பேட்டர்ன்ஸ் லேர்ன் பண்ணும். அப்புறம் புது இன்புட்-க்கு பிரடிக்ஷன் ஜெனரேட் பண்ணும்.",
+          "output_file": "mms_tam_test_c_phonetic.wav",
+          "generation_time_s": 6.42,
+          "validation": {
+            "status": "VALID",
+            "duration_s": 8.16,
+            "sample_rate": 16000,
+            "samples": 130560,
+            "file_size_bytes": 261164,
+            "peak_amplitude": 0.71774,
+            "rms_amplitude": 0.14366,
+            "browser_playable": true
+          },
+          "observation": "With phonetic transliteration, MMS-TAM articulates all loanwords accurately using its native character inventory."
+        }
+      ],
+      "technical_notes": "Fast, clear synthesis on CPU (~1.5s). Crucial limitation: CC-BY-NC 4.0 strictly forbids commercial production use. Furthermore, character-level vocab drops Latin letters unless transliterated into Tamil script."
+    },
+    "candidate_4": {
+      "model_id": "ai4bharat/IndicF5",
+      "display_name": "AI4Bharat IndicF5 (F5-TTS Flow Matching)",
+      "license": "MIT (requires accepted terms)",
+      "architecture": "F5-TTS (Flow-matching voice cloning, 11 Indian languages)",
+      "status": "FAILED_GATED",
+      "gating_status": "HTTP 401 Unauthorized",
+      "error_message": "HTTP 401 Unauthorized: Model access is gated by AI4Bharat. Users must visit https://huggingface.co/ai4bharat/IndicF5 and accept repository terms to gain access token permissions.",
+      "requirements": "Requires: (1) Accepted Hugging Face repository access, (2) User Hugging Face authentication token, (3) Reference audio clip (2-10s) + matching Tamil transcript for zero-shot speaker conditioning.",
+      "samples": []
+    },
+    "candidate_5": {
+      "model_id": "ai4bharat/indic-parler-tts",
+      "display_name": "AI4Bharat Indic-Parler-TTS",
+      "license": "Apache 2.0 (requires accepted terms)",
+      "architecture": "Parler-TTS (Natural-language descriptive speech synthesis, 23 Indic languages + English)",
+      "status": "FAILED_GATED_AND_LARGE",
+      "gating_status": "HTTP 401 Unauthorized",
+      "error_message": "HTTP 401 Unauthorized: Gated repository requiring Hugging Face login and terms approval. In addition, model weights exceed 2.2 GB (exceeding isolated 2 GB download safety limit).",
+      "requirements": "Requires: (1) Accepted terms at https://huggingface.co/ai4bharat/indic-parler-tts, (2) Authenticated HF token, (3) 8 GB+ RAM / high VRAM overhead for Parler-TTS transformer backbone.",
+      "samples": []
+    },
+    "reference_fish_speech": {
+      "model_id": "sugiv/fish-speech-1.5-tanglish",
+      "display_name": "Fish-Speech 1.5 Tanglish LoRA (sugiv)",
+      "license": "CC-BY-NC-SA 4.0 (Non-commercial share-alike)",
+      "hardware_rationale": "DO NOT RUN LOCALLY: Fish-Speech 1.5 dual-autoregressive LLaMA backbone + Firefly VQGAN vocoder requires 12 GB - 24 GB GPU VRAM (evaluated upstream on NVIDIA L4 24 GB). Cannot load on laptop RTX 3050 (4 GB VRAM) without triggering CUDA OOM.",
+      "status": "REFERENCE_PRECOMPUTED",
+      "sample_count": 15,
+      "samples": [
+        {
+          "id": "01",
+          "category": "Bucket 1 — In-distribution",
+          "text": "vanakkam da mapla, sowkyama?",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/in_distribution/01_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/01_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 1.95,
+            "sample_rate": 44100,
+            "samples": 86016,
+            "file_size_bytes": 172076,
+            "peak_amplitude": 0.1875,
+            "rms_amplitude": 0.02994,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "02",
+          "category": "Bucket 1 — In-distribution",
+          "text": "enakku indha padam romba pidichathu",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/in_distribution/02_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/02_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 2.136,
+            "sample_rate": 44100,
+            "samples": 94208,
+            "file_size_bytes": 188460,
+            "peak_amplitude": 0.17383,
+            "rms_amplitude": 0.03441,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "03",
+          "category": "Bucket 1 — In-distribution",
+          "text": "aluvalar ippo ellam smartphone la work panreenga",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/in_distribution/03_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/03_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 3.808,
+            "sample_rate": 44100,
+            "samples": 167936,
+            "file_size_bytes": 335916,
+            "peak_amplitude": 0.17871,
+            "rms_amplitude": 0.03019,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "04",
+          "category": "Bucket 2 — Novel Colloquial Tanglish",
+          "text": "machi, nalaikku chennai la enna weather?",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/novel/04_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/04_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 2.322,
+            "sample_rate": 44100,
+            "samples": 102400,
+            "file_size_bytes": 204844,
+            "peak_amplitude": 0.33008,
+            "rms_amplitude": 0.04841,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "05",
+          "category": "Bucket 2 — Novel Colloquial Tanglish",
+          "text": "meeting mudinjatha? call me back please",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/novel/05_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/05_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 2.043,
+            "sample_rate": 44100,
+            "samples": 90112,
+            "file_size_bytes": 180268,
+            "peak_amplitude": 0.33594,
+            "rms_amplitude": 0.04124,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "06",
+          "category": "Bucket 2 — Novel Colloquial Tanglish",
+          "text": "unga family la ellarum nalla iruka?",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/novel/06_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/06_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 2.415,
+            "sample_rate": 44100,
+            "samples": 106496,
+            "file_size_bytes": 213036,
+            "peak_amplitude": 0.2373,
+            "rms_amplitude": 0.04491,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "07",
+          "category": "Bucket 2 — Novel Colloquial Tanglish",
+          "text": "nan romba tired-a irruken, konjam rest pannanum",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/novel/07_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/07_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 4.505,
+            "sample_rate": 44100,
+            "samples": 198656,
+            "file_size_bytes": 397356,
+            "peak_amplitude": 0.23047,
+            "rms_amplitude": 0.03571,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "08",
+          "category": "Bucket 2 — Novel Colloquial Tanglish",
+          "text": "netflix la puthu series onnu vanthiruku, super-a iruku",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/novel/08_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/08_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 6.316,
+            "sample_rate": 44100,
+            "samples": 278528,
+            "file_size_bytes": 557100,
+            "peak_amplitude": 0.25391,
+            "rms_amplitude": 0.04753,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "09",
+          "category": "Bucket 2 — Novel Colloquial Tanglish",
+          "text": "chennai traffic la stuck aayiten, sorry late-a varen",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/novel/09_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/09_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 3.529,
+            "sample_rate": 44100,
+            "samples": 155648,
+            "file_size_bytes": 311340,
+            "peak_amplitude": 0.27148,
+            "rms_amplitude": 0.03348,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "10",
+          "category": "Bucket 2 — Novel Colloquial Tanglish",
+          "text": "sapadu ready-a? pasi-a irruku",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/novel/10_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/10_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 1.672,
+            "sample_rate": 44100,
+            "samples": 73728,
+            "file_size_bytes": 147500,
+            "peak_amplitude": 0.40625,
+            "rms_amplitude": 0.05241,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "11",
+          "category": "Bucket 3 — Hard English / Code-switching",
+          "text": "actually, my flight got delayed, so I'll reach late",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/hard/11_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/11_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 3.065,
+            "sample_rate": 44100,
+            "samples": 135168,
+            "file_size_bytes": 270380,
+            "peak_amplitude": 0.10596,
+            "rms_amplitude": 0.02022,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "12",
+          "category": "Bucket 3 — Hard English / Code-switching",
+          "text": "onnu, rendu, munu, naalu, anju",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/hard/12_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/12_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 2.322,
+            "sample_rate": 44100,
+            "samples": 102400,
+            "file_size_bytes": 204844,
+            "peak_amplitude": 0.1748,
+            "rms_amplitude": 0.03842,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "13",
+          "category": "Bucket 3 — Hard English / Code-switching",
+          "text": "MGR-oda padam paatha, thala Ajith fan aaiten",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/hard/13_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/13_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 3.483,
+            "sample_rate": 44100,
+            "samples": 153600,
+            "file_size_bytes": 307244,
+            "peak_amplitude": 0.17676,
+            "rms_amplitude": 0.02964,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "14",
+          "category": "Bucket 3 — Hard English / Code-switching",
+          "text": "nethu poi office la meeting attend panniten, appuram friend kitte pesi sapada poiten",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/hard/14_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/14_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 7.291,
+            "sample_rate": 44100,
+            "samples": 321536,
+            "file_size_bytes": 643116,
+            "peak_amplitude": 0.22949,
+            "rms_amplitude": 0.0401,
+            "browser_playable": true
+          }
+        },
+        {
+          "id": "15",
+          "category": "Bucket 3 — Hard English / Code-switching",
+          "text": "ivlo late-a enna panra? padikkalaya?",
+          "remote_url": "https://huggingface.co/sugiv/fish-speech-1.5-tanglish/resolve/main/eval/hard/15_karthik_kumar_solo_tng.wav",
+          "local_file": "reference_fish_speech/15_karthik_kumar_solo_tng.wav",
+          "speaker": "karthik_kumar_solo (Chennai speaker reference)",
+          "validation": {
+            "status": "VALID",
+            "duration_s": 2.601,
+            "sample_rate": 44100,
+            "samples": 114688,
+            "file_size_bytes": 229420,
+            "peak_amplitude": 0.14355,
+            "rms_amplitude": 0.02787,
+            "browser_playable": true
+          }
+        }
+      ]
+    }
+  },
+  "summary": {
+    "total_candidates": 5,
+    "successful_candidates": 3,
+    "failed_gated_candidates": 2,
+    "total_local_wavs_generated": 18,
+    "valid_local_wavs": 18,
+    "reference_wavs_available": 15,
+    "commercial_ready_models": [
+      "prasadvittaldev/pocket-tts-tamil-female-audiobook (MIT)",
+      "Jeyaram-K/piper-tamil-voices (Apache 2.0)"
+    ],
+    "non_commercial_restricted_models": [
+      "facebook/mms-tts-tam (CC-BY-NC 4.0)",
+      "sugiv/fish-speech-1.5-tanglish (CC-BY-NC-SA 4.0)"
+    ]
+  }
+}

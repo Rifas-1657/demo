@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookey — Local TTS Audition Lab</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --accent: #818cf8;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.5;
+      padding: 1.5rem;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-mit { background: #065f46; color: #34d399; }
+    .badge-apache { background: #1e3a8a; color: #60a5fa; }
+    .badge-restricted { background: #7f1d1d; color: #f87171; }
+    .badge-gated { background: #78350f; color: #fbbf24; }
+    .badge-reference { background: #581c87; color: #c084fc; }
+    .badge-script { background: #334155; color: #e2e8f0; font-size: 0.7rem; }
+
+    .system-banner {
+      background: #1e293b;
+      border: 1px solid var(--card-border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      font-size: 0.875rem;
+    }
+    .system-item { display: flex; flex-direction: column; }
+    .system-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
+    .system-value { font-weight: 600; color: var(--primary); }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin: 1.5rem 0;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 0.5rem;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.6rem 1.1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 0.375rem;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--text); background: #334155; }
+    .tab-btn.active { color: var(--primary); background: #1e293b; border-bottom: 2px solid var(--primary); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .sentence-hero {
+      background: #1e293b;
+      border-left: 4px solid var(--primary);
+      padding: 1rem 1.25rem;
+      border-radius: 0.375rem;
+      margin-bottom: 1.5rem;
+    }
+    .sentence-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .sentence-desc { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .sentence-target {
+      background: #0f172a;
+      padding: 0.6rem 0.8rem;
+      border-radius: 0.25rem;
+      font-family: monospace;
+      font-size: 0.9rem;
+      color: #38bdf8;
+      word-break: break-word;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .candidate-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      transition: border-color 0.2s;
+    }
+    .candidate-card:hover { border-color: var(--primary); }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .model-name { font-size: 1.05rem; font-weight: 700; color: #fff; }
+    .model-sub { font-size: 0.8rem; color: var(--text-muted); }
+
+    .script-box {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 0.375rem;
+      padding: 0.6rem;
+      font-size: 0.85rem;
+    }
+    .script-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    .script-text { color: #e2e8f0; word-break: break-word; }
+
+    .metrics-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-top: 1px solid #334155;
+      border-bottom: 1px solid #334155;
+      padding: 0.45rem 0;
+    }
+    .metrics-item { display: flex; gap: 0.25rem; }
+    .metrics-val { font-weight: 600; color: var(--text); }
+
+    audio { width: 100%; border-radius: 0.375rem; margin: 0.25rem 0; outline: none; }
+
+    .rating-section {
+      background: #141e30;
+      border-radius: 0.5rem;
+      padding: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      font-size: 0.85rem;
+    }
+    .rating-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .rating-row label { color: var(--text-muted); font-size: 0.8rem; }
+    .star-select {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      border-radius: 0.25rem;
+      padding: 0.2rem 0.4rem;
+      font-size: 0.8rem;
+    }
+    .notes-input {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 0.25rem;
+      color: #fff;
+      padding: 0.4rem 0.5rem;
+      font-size: 0.8rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 48px;
+    }
+    .save-indicator {
+      font-size: 0.7rem;
+      color: var(--success);
+      text-align: right;
+      display: none;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      background: #1e293b;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--card-border);
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      background: var(--primary);
+      color: #0f172a;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      border: none;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #334155; color: #f8fafc; }
+    .btn-secondary:hover { background: #475569; }
+    .btn-danger { background: #7f1d1d; color: #fecaca; }
+    .btn-danger:hover { background: #991b1b; }
+
+    .gated-card {
+      background: #1e293b;
+      border: 1px solid #78350f;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .gated-card h3 { color: #fbbf24; margin-bottom: 0.5rem; }
+    .gated-steps { margin-left: 1.25rem; margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-muted); }
+    .gated-steps li { margin-bottom: 0.35rem; }
+
+    .ref-card {
+      background: #1e293b;
+      border: 1px solid #581c87;
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .ref-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+
+    @media (max-width: 768px) {
+      body { padding: 0.75rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+      <div>
+        <h1 style="font-size: 1.75rem; font-weight: 800; color: #fff;">Bookey — Local TTS Audition Lab</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+          Evaluating candidate Tamil & Tanglish TTS engines on isolated hardware before production integration.
+        </p>
+      </div>
+      <div>
+        <span class="badge badge-mit">Production Isolation Safe</span>
+      </div>
+    </div>
+
+    <div class="system-banner">
+      <div class="system-item">
+        <span class="system-label">Host Hardware</span>
+        <span class="system-value">Ryzen 5 5600H | 16 GB RAM</span>
+      </div>
+      <div class="system-item">
+        <span class="system-label">Target GPU</span>
+        <span class="system-value">NVIDIA RTX 3050 Laptop (4 GB VRAM)</span>
+      </div>
+      <div class="system-item">
+        <span class="system-label">Execution Strategy</span>
+        <span class="system-value">CPU Quantized / ONNX (0 VRAM used)</span>
+      </div>
+      <div class="system-item">
+        <span class="system-label">Safety Status</span>
+        <span class="system-value" style="color: var(--success);">Bookey Backend Untouched</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Toolbar with ratings count and export -->
+  <div class="toolbar">
+    <div>
+      <span style="font-weight: 600;">Audition Ratings Status: </span>
+      <span id="ratings-count" style="color: var(--primary); font-weight: 700;">0 rated</span>
+      <span style="color: var(--text-muted); font-size: 0.8rem; margin-left: 0.5rem;">(auto-saved to browser local storage)</span>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <button class="btn" onclick="exportRatings('json')">Export Ratings (JSON)</button>
+      <button class="btn btn-secondary" onclick="exportRatings('csv')">Export Ratings (CSV)</button>
+      <button class="btn btn-danger" onclick="clearRatings()">Reset All Ratings</button>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('tab-test-a')">Test A: Conversational</button>
+    <button class="tab-btn" onclick="switchTab('tab-test-b')">Test B: Technical (React/useState)</button>
+    <button class="tab-btn" onclick="switchTab('tab-test-c')">Test C: Educational (ML)</button>
+    <button class="tab-btn" onclick="switchTab('tab-gated')">Gated Models (4 &amp; 5)</button>
+    <button class="tab-btn" onclick="switchTab('tab-reference')">Reference: Fish-Speech Tanglish (15 WAVs)</button>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- TAB: TEST A -->
+  <!-- ======================================================== -->
+  <div id="tab-test-a" class="tab-content active">
+    <div class="sentence-hero">
+      <div class="sentence-title">Test A — Natural Conversational Tanglish</div>
+      <div class="sentence-desc">Tests casual greeting, colloquial Tanglish flow, and everyday spoken rhythm.</div>
+      <div class="sentence-target">Semantic Target: "Vanakkam! Innaiku namma Python variables pathi kathukkaporom."</div>
+    </div>
+
+    <div class="card-grid">
+      <!-- 1. Pocket-TTS Romanized -->
+      <div class="candidate-card" data-clip-id="pocket_test_a_roman">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Pocket TTS (Geetha)</div>
+            <div class="model-sub">prasadvittaldev/pocket-tts-tamil-female-audiobook</div>
+          </div>
+          <span class="badge badge-mit">MIT</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Romanized Tanglish</span></div>
+          <div class="script-text">Vanakkam! Innaiku namma Python variables pathi kathukkaporom.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Load:</span><span class="metrics-val">3.1s</span></div>
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">4.05s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">6.80s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">24 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">326 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/pocket_tts_test_a_roman.wav" type="audio/wav">
+          Your browser does not support the audio element.
+        </audio>
+        <div class="rating-section" id="rate-pocket_test_a_roman"></div>
+      </div>
+
+      <!-- 2. Pocket-TTS Tamil Script -->
+      <div class="candidate-card" data-clip-id="pocket_test_a_tamil">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Pocket TTS (Geetha)</div>
+            <div class="model-sub">prasadvittaldev/pocket-tts-tamil-female-audiobook</div>
+          </div>
+          <span class="badge badge-mit">MIT</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Tamil Script + English Terms</span></div>
+          <div class="script-text">வணக்கம்! இன்னைக்கு நம்ம Python variables பத்தி கத்துக்கப்போறோம்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Load:</span><span class="metrics-val">3.1s</span></div>
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">3.35s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">5.36s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">24 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">257 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/pocket_tts_test_a_tamil.wav" type="audio/wav">
+          Your browser does not support the audio element.
+        </audio>
+        <div class="rating-section" id="rate-pocket_test_a_tamil"></div>
+      </div>
+
+      <!-- 3. Piper Tamil Voices (Valluvar) - English Terms -->
+      <div class="candidate-card" data-clip-id="piper_test_a_loan">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Piper Tamil (Valluvar)</div>
+            <div class="model-sub">Jeyaram-K/piper-tamil-voices (VITS ONNX)</div>
+          </div>
+          <span class="badge badge-apache">Apache 2.0</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Tamil Script + English Terms</span></div>
+          <div class="script-text">வணக்கம்! இன்னைக்கு நம்ம Python variables பத்தி கத்துக்கப்போறோம்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Load:</span><span class="metrics-val">1.85s</span></div>
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">0.31s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">4.33s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">22.05 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">191 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/piper_valluvar_test_a_english_loanwords.wav" type="audio/wav">
+          Your browser does not support the audio element.
+        </audio>
+        <div class="rating-section" id="rate-piper_test_a_loan"></div>
+      </div>
+
+      <!-- 4. Piper Tamil Voices (Valluvar) - Phonetic -->
+      <div class="candidate-card" data-clip-id="piper_test_a_phonetic">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Piper Tamil (Valluvar)</div>
+            <div class="model-sub">Jeyaram-K/piper-tamil-voices (Phonetic Transliteration)</div>
+          </div>
+          <span class="badge badge-apache">Apache 2.0</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Phonetic Transliteration</span></div>
+          <div class="script-text">வணக்கம்! இன்னைக்கு நம்ம பைதான் வேரியபிள்ஸ் பத்தி கத்துக்கப்போறோம்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Load:</span><span class="metrics-val">1.85s</span></div>
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">0.27s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">4.75s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">22.05 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">209 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/piper_valluvar_test_a_phonetic.wav" type="audio/wav">
+          Your browser does not support the audio element.
+        </audio>
+        <div class="rating-section" id="rate-piper_test_a_phonetic"></div>
+      </div>
+
+      <!-- 5. Meta MMS-TTS (English Terms) -->
+      <div class="candidate-card" data-clip-id="mms_test_a_loan">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Meta MMS-TTS Tamil</div>
+            <div class="model-sub">facebook/mms-tts-tam (Non-commercial)</div>
+          </div>
+          <span class="badge badge-restricted">CC-BY-NC 4.0</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Tamil Script + English Terms (Drops Latin)</span></div>
+          <div class="script-text">வணக்கம்! இன்னைக்கு நம்ம Python variables பத்தி கத்துக்கப்போறோம்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Load:</span><span class="metrics-val">4.72s</span></div>
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">2.79s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">3.47s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">16 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">111 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/mms_tam_test_a_english_loanwords.wav" type="audio/wav">
+          Your browser does not support the audio element.
+        </audio>
+        <div class="rating-section" id="rate-mms_test_a_loan"></div>
+      </div>
+
+      <!-- 6. Meta MMS-TTS (Phonetic) -->
+      <div class="candidate-card" data-clip-id="mms_test_a_phonetic">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Meta MMS-TTS Tamil</div>
+            <div class="model-sub">facebook/mms-tts-tam (Phonetic Transliteration)</div>
+          </div>
+          <span class="badge badge-restricted">CC-BY-NC 4.0</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Phonetic Transliteration</span></div>
+          <div class="script-text">வணக்கம்! இன்னைக்கு நம்ம பைதான் வேரியபிள்ஸ் பத்தி கத்துக்கப்போறோம்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Load:</span><span class="metrics-val">4.72s</span></div>
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">4.54s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">5.33s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">16 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">170 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/mms_tam_test_a_phonetic.wav" type="audio/wav">
+          Your browser does not support the audio element.
+        </audio>
+        <div class="rating-section" id="rate-mms_test_a_phonetic"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- TAB: TEST B -->
+  <!-- ======================================================== -->
+  <div id="tab-test-b" class="tab-content">
+    <div class="sentence-hero">
+      <div class="sentence-title">Test B — English Technical Vocabulary</div>
+      <div class="sentence-desc">Evaluates code-switching with software development keywords: React, useState, hook, component, re-render.</div>
+      <div class="sentence-target">Semantic Target: "React-la useState hook use pannumbodhu, state update aana component re-render aagum."</div>
+    </div>
+
+    <div class="card-grid">
+      <!-- 1. Pocket-TTS Romanized -->
+      <div class="candidate-card" data-clip-id="pocket_test_b_roman">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Pocket TTS (Geetha)</div>
+            <div class="model-sub">prasadvittaldev/pocket-tts-tamil-female-audiobook</div>
+          </div>
+          <span class="badge badge-mit">MIT</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Romanized Tanglish</span></div>
+          <div class="script-text">React-la useState hook use pannumbodhu, state update aana component re-render aagum.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">5.12s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">8.16s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">24 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">391 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/pocket_tts_test_b_roman.wav" type="audio/wav">
+        </audio>
+        <div class="rating-section" id="rate-pocket_test_b_roman"></div>
+      </div>
+
+      <!-- 2. Pocket-TTS Tamil Script -->
+      <div class="candidate-card" data-clip-id="pocket_test_b_tamil">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Pocket TTS (Geetha)</div>
+            <div class="model-sub">prasadvittaldev/pocket-tts-tamil-female-audiobook</div>
+          </div>
+          <span class="badge badge-mit">MIT</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Tamil Script + English Terms</span></div>
+          <div class="script-text">React-ல useState hook use பண்ணும்போது, state update ஆனா component re-render ஆகும்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">4.69s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">7.84s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">24 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">376 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/pocket_tts_test_b_tamil.wav" type="audio/wav">
+        </audio>
+        <div class="rating-section" id="rate-pocket_test_b_tamil"></div>
+      </div>
+
+      <!-- 3. Piper Tamil (Valluvar) - English Terms -->
+      <div class="candidate-card" data-clip-id="piper_test_b_loan">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Piper Tamil (Valluvar)</div>
+            <div class="model-sub">Jeyaram-K/piper-tamil-voices (VITS ONNX)</div>
+          </div>
+          <span class="badge badge-apache">Apache 2.0</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Tamil Script + English Terms</span></div>
+          <div class="script-text">React-ல useState hook use பண்ணும்போது, state update ஆனா component re-render ஆகும்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">0.34s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">5.64s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">22.05 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">248 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/piper_valluvar_test_b_english_loanwords.wav" type="audio/wav">
+        </audio>
+        <div class="rating-section" id="rate-piper_test_b_loan"></div>
+      </div>
+
+      <!-- 4. Piper Tamil (Valluvar) - Phonetic -->
+      <div class="candidate-card" data-clip-id="piper_test_b_phonetic">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Piper Tamil (Valluvar)</div>
+            <div class="model-sub">Jeyaram-K/piper-tamil-voices (Phonetic)</div>
+          </div>
+          <span class="badge badge-apache">Apache 2.0</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Phonetic Transliteration</span></div>
+          <div class="script-text">ரியாக்ட்-ல யூஸ் ஸ்டேட் ஹூக் யூஸ் பண்ணும்போது, ஸ்டேட் அப்டேட் ஆனா காம்போனன்ட் ரீ-ரெண்டர் ஆகும்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">0.33s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">5.74s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">22.05 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">252 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/piper_valluvar_test_b_phonetic.wav" type="audio/wav">
+        </audio>
+        <div class="rating-section" id="rate-piper_test_b_phonetic"></div>
+      </div>
+
+      <!-- 5. Meta MMS-TTS (English Terms) -->
+      <div class="candidate-card" data-clip-id="mms_test_b_loan">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Meta MMS-TTS Tamil</div>
+            <div class="model-sub">facebook/mms-tts-tam (Non-commercial)</div>
+          </div>
+          <span class="badge badge-restricted">CC-BY-NC 4.0</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Tamil Script + English Terms (Drops Latin)</span></div>
+          <div class="script-text">React-ல useState hook use பண்ணும்போது, state update ஆனா component re-render ஆகும்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">2.04s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">2.59s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">16 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">82 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/mms_tam_test_b_english_loanwords.wav" type="audio/wav">
+        </audio>
+        <div class="rating-section" id="rate-mms_test_b_loan"></div>
+      </div>
+
+      <!-- 6. Meta MMS-TTS (Phonetic) -->
+      <div class="candidate-card" data-clip-id="mms_test_b_phonetic">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Meta MMS-TTS Tamil</div>
+            <div class="model-sub">facebook/mms-tts-tam (Phonetic)</div>
+          </div>
+          <span class="badge badge-restricted">CC-BY-NC 4.0</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Phonetic Transliteration</span></div>
+          <div class="script-text">ரியாக்ட்-ல யூஸ் ஸ்டேட் ஹூக் யூஸ் பண்ணும்போது, ஸ்டேட் அப்டேட் ஆனா காம்போனன்ட் ரீ-ரெண்டர் ஆகும்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">7.07s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">8.93s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">16 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">285 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/mms_tam_test_b_phonetic.wav" type="audio/wav">
+        </audio>
+        <div class="rating-section" id="rate-mms_test_b_phonetic"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- TAB: TEST C -->
+  <!-- ======================================================== -->
+  <div id="tab-test-c" class="tab-content">
+    <div class="sentence-hero">
+      <div class="sentence-title">Test C — Longer Educational Explanation</div>
+      <div class="sentence-desc">Tests multi-clause educational explanation with Machine Learning vocabulary, training data, and prediction.</div>
+      <div class="sentence-target">Semantic Target: "Machine learning-la model training data-la irundhu patterns learn pannum. Appuram pudhu input-ku prediction generate pannum."</div>
+    </div>
+
+    <div class="card-grid">
+      <!-- 1. Pocket-TTS Romanized -->
+      <div class="candidate-card" data-clip-id="pocket_test_c_roman">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Pocket TTS (Geetha)</div>
+            <div class="model-sub">prasadvittaldev/pocket-tts-tamil-female-audiobook</div>
+          </div>
+          <span class="badge badge-mit">MIT</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Romanized Tanglish</span></div>
+          <div class="script-text">Machine learning-la model training data-la irundhu patterns learn pannum. Appuram pudhu input-ku prediction generate pannum.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">4.50s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">7.52s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">24 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">361 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/pocket_tts_test_c_roman.wav" type="audio/wav">
+        </audio>
+        <div class="rating-section" id="rate-pocket_test_c_roman"></div>
+      </div>
+
+      <!-- 2. Pocket-TTS Tamil Script -->
+      <div class="candidate-card" data-clip-id="pocket_test_c_tamil">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Pocket TTS (Geetha)</div>
+            <div class="model-sub">prasadvittaldev/pocket-tts-tamil-female-audiobook</div>
+          </div>
+          <span class="badge badge-mit">MIT</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Tamil Script + English Terms</span></div>
+          <div class="script-text">Machine learning-ல model training data-ல இருந்து patterns learn பண்ணும். அப்புறம் புது input-க்கு prediction generate பண்ணும்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">4.73s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">7.84s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">24 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">376 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/pocket_tts_test_c_tamil.wav" type="audio/wav">
+        </audio>
+        <div class="rating-section" id="rate-pocket_test_c_tamil"></div>
+      </div>
+
+      <!-- 3. Piper Tamil (Valluvar) - English Terms -->
+      <div class="candidate-card" data-clip-id="piper_test_c_loan">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Piper Tamil (Valluvar)</div>
+            <div class="model-sub">Jeyaram-K/piper-tamil-voices (VITS ONNX)</div>
+          </div>
+          <span class="badge badge-apache">Apache 2.0</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Tamil Script + English Terms</span></div>
+          <div class="script-text">Machine learning-ல model training data-ல இருந்து patterns learn பண்ணும். அப்புறம் புது input-க்கு prediction generate பண்ணும்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">0.52s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">7.08s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">22.05 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">312 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/piper_valluvar_test_c_english_loanwords.wav" type="audio/wav">
+        </audio>
+        <div class="rating-section" id="rate-piper_test_c_loan"></div>
+      </div>
+
+      <!-- 4. Piper Tamil (Valluvar) - Phonetic -->
+      <div class="candidate-card" data-clip-id="piper_test_c_phonetic">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Piper Tamil (Valluvar)</div>
+            <div class="model-sub">Jeyaram-K/piper-tamil-voices (Phonetic)</div>
+          </div>
+          <span class="badge badge-apache">Apache 2.0</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Phonetic Transliteration</span></div>
+          <div class="script-text">மெஷின் லேர்னிங்-ல மாடல் டிரெய்னிங் டேட்டா-ல இருந்து பேட்டர்ன்ஸ் லேர்ன் பண்ணும். அப்புறம் புது இன்புட்-க்கு பிரடிக்ஷன் ஜெனரேட் பண்ணும்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">0.45s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">7.58s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">22.05 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">334 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/piper_valluvar_test_c_phonetic.wav" type="audio/wav">
+        </audio>
+        <div class="rating-section" id="rate-piper_test_c_phonetic"></div>
+      </div>
+
+      <!-- 5. Meta MMS-TTS (English Terms) -->
+      <div class="candidate-card" data-clip-id="mms_test_c_loan">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Meta MMS-TTS Tamil</div>
+            <div class="model-sub">facebook/mms-tts-tam (Non-commercial)</div>
+          </div>
+          <span class="badge badge-restricted">CC-BY-NC 4.0</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Tamil Script + English Terms (Drops Latin)</span></div>
+          <div class="script-text">Machine learning-ல model training data-ல இருந்து patterns learn பண்ணும். அப்புறம் புது input-க்கு prediction generate பண்ணும்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">3.17s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">4.02s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">16 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">128 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/mms_tam_test_c_english_loanwords.wav" type="audio/wav">
+        </audio>
+        <div class="rating-section" id="rate-mms_test_c_loan"></div>
+      </div>
+
+      <!-- 6. Meta MMS-TTS (Phonetic) -->
+      <div class="candidate-card" data-clip-id="mms_test_c_phonetic">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Meta MMS-TTS Tamil</div>
+            <div class="model-sub">facebook/mms-tts-tam (Phonetic)</div>
+          </div>
+          <span class="badge badge-restricted">CC-BY-NC 4.0</span>
+        </div>
+        <div class="script-box">
+          <div class="script-label"><span>Input Script</span><span class="badge badge-script">Phonetic Transliteration</span></div>
+          <div class="script-text">மெஷின் லேர்னிங்-ல மாடல் டிரெய்னிங் டேட்டா-ல இருந்து பேட்டர்ன்ஸ் லேர்ன் பண்ணும். அப்புறம் புது இன்புட்-க்கு பிரடிக்ஷன் ஜெனரேட் பண்ணும்.</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metrics-item"><span>Gen:</span><span class="metrics-val">6.42s</span></div>
+          <div class="metrics-item"><span>Dur:</span><span class="metrics-val">8.16s</span></div>
+          <div class="metrics-item"><span>SR:</span><span class="metrics-val">16 kHz</span></div>
+          <div class="metrics-item"><span>Size:</span><span class="metrics-val">261 KB</span></div>
+        </div>
+        <audio controls preload="none">
+          <source src="output/mms_tam_test_c_phonetic.wav" type="audio/wav">
+        </audio>
+        <div class="rating-section" id="rate-mms_test_c_phonetic"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- TAB: GATED MODELS -->
+  <!-- ======================================================== -->
+  <div id="tab-gated" class="tab-content">
+    <div class="sentence-hero" style="border-left-color: var(--warning);">
+      <div class="sentence-title">Candidate Models 4 &amp; 5 — Gated &amp; Resource-Constrained Status</div>
+      <div class="sentence-desc">
+        Under your project safety rules, the audition lab strictly halts before gated models requiring agreements or unapproved >2GB downloads. No credentials were asked for or stored.
+      </div>
+    </div>
+
+    <!-- Candidate 4: IndicF5 -->
+    <div class="gated-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h3>Candidate 4: ai4bharat/IndicF5</h3>
+        <span class="badge badge-gated">Gated — Requires Acceptance</span>
+      </div>
+      <p style="font-size: 0.9rem; margin-bottom: 0.75rem;">
+        <strong>Architecture:</strong> F5-TTS (Flow-matching zero-shot voice cloning for 11 Indian languages, including Tamil).
+      </p>
+      <div style="background: #0f172a; padding: 0.75rem; border-radius: 0.375rem; font-family: monospace; font-size: 0.85rem; color: #f87171; margin-bottom: 0.75rem;">
+        Verification Probe Result: HTTP 401 Unauthorized (Gated repository)
+      </div>
+      <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+        <strong>How to evaluate IndicF5 in the future:</strong>
+      </p>
+      <ul class="gated-steps">
+        <li>1. Log in to your personal Hugging Face account in your browser.</li>
+        <li>2. Visit <a href="https://huggingface.co/ai4bharat/IndicF5" target="_blank" style="color: var(--primary);">https://huggingface.co/ai4bharat/IndicF5</a> and click "Agree and access repository".</li>
+        <li>3. Run <code>huggingface-cli login</code> locally in your PowerShell terminal to cache your credential locally (never paste in chat).</li>
+        <li>4. Prepare a high-fidelity reference audio clip (3–10s WAV) of a clear Tamil speaker along with its exact transcript to condition the F5 flow model.</li>
+      </ul>
+    </div>
+
+    <!-- Candidate 5: indic-parler-tts -->
+    <div class="gated-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h3>Candidate 5: ai4bharat/indic-parler-tts</h3>
+        <span class="badge badge-gated">Gated &amp; &gt; 2.2 GB Weights</span>
+      </div>
+      <p style="font-size: 0.9rem; margin-bottom: 0.75rem;">
+        <strong>Architecture:</strong> Parler-TTS (Natural-language descriptive speech synthesis across 23 Indian languages + English).
+      </p>
+      <div style="background: #0f172a; padding: 0.75rem; border-radius: 0.375rem; font-family: monospace; font-size: 0.85rem; color: #f87171; margin-bottom: 0.75rem;">
+        Verification Probe Result: HTTP 401 Unauthorized (Gated repository) + Size Limit Rule Triggered
+      </div>
+      <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+        <strong>Hardware &amp; Access Requirements:</strong>
+      </p>
+      <ul class="gated-steps">
+        <li>1. Requires access acceptance at <a href="https://huggingface.co/ai4bharat/indic-parler-tts" target="_blank" style="color: var(--primary);">https://huggingface.co/ai4bharat/indic-parler-tts</a>.</li>
+        <li>2. <strong>Weight Size:</strong> &gt; 2.2 GB safetensors weights. Downloading was halted pursuant to your 2 GB pre-approval safety gate.</li>
+        <li>3. <strong>VRAM &amp; Compute:</strong> Parler-TTS models have high memory footprints during generation. On an RTX 3050 Laptop (4 GB VRAM), running Parler-TTS with full context risks Out-Of-Memory (OOM) unless strictly offloaded to CPU or aggressively quantized.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- TAB: REFERENCE FISH-SPEECH (15 REAL BENCHMARK CLIPS) -->
+  <!-- ======================================================== -->
+  <div id="tab-reference" class="tab-content">
+    <div class="sentence-hero" style="border-left-color: var(--accent);">
+      <div class="sentence-title">Reference Benchmark: Fish-Speech 1.5 Tanglish LoRA (sugiv)</div>
+      <div class="sentence-desc">
+        15 genuine evaluation WAVs generated by the fine-tuned dual-AR LLaMA + Firefly VQGAN checkpoint on an NVIDIA L4 GPU.
+        <br>
+        <strong>Hardware Protection Note:</strong> The Fish-Speech Tanglish model backbone requires &gt;12 GB GPU VRAM. As instructed, it was NOT loaded onto your 4 GB GPU; the genuine benchmark clips are loaded directly from the evaluation suite.
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+      <h3 style="color: var(--accent); margin-top: 0.5rem;">Bucket 1 — In-Distribution Everyday Tanglish</h3>
+      <div id="ref-bucket-1" class="card-grid"></div>
+
+      <h3 style="color: var(--accent); margin-top: 1rem;">Bucket 2 — Novel Colloquial Tanglish (Target Distribution)</h3>
+      <div id="ref-bucket-2" class="card-grid"></div>
+
+      <h3 style="color: var(--accent); margin-top: 1rem;">Bucket 3 — Hard Code-Switching &amp; Numbers</h3>
+      <div id="ref-bucket-3" class="card-grid"></div>
+    </div>
+  </div>
+
+  <script>
+    // Tab switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    // Rating template generator
+    const RATING_KEYS = ['naturalness', 'tanglish_pronunciation', 'tech_word_pronunciation', 'clarity', 'missing_words', 'overall', 'notes'];
+
+    function createRatingForm(clipId) {
+      return `
+        <div class="rating-row">
+          <label>Naturalness (1-5):</label>
+          <select class="star-select" onchange="saveRating('${clipId}', 'naturalness', this.value)">
+            <option value="">Rate...</option>
+            <option value="5">5 — Very Human</option>
+            <option value="4">4 — Natural</option>
+            <option value="3">3 — Audible robotic tone</option>
+            <option value="2">2 — Heavily synthetic</option>
+            <option value="1">1 — Unusable</option>
+          </select>
+        </div>
+        <div class="rating-row">
+          <label>Tanglish Pronunciation:</label>
+          <select class="star-select" onchange="saveRating('${clipId}', 'tanglish_pronunciation', this.value)">
+            <option value="">Rate...</option>
+            <option value="5">5 — Native Chennai/TN cadence</option>
+            <option value="4">4 — Good Tamil phonology</option>
+            <option value="3">3 — Understandable</option>
+            <option value="2">2 — Western/Hindi accent leak</option>
+            <option value="1">1 — Garbled / Unintelligible</option>
+          </select>
+        </div>
+        <div class="rating-row">
+          <label>Technical Words (React, Python):</label>
+          <select class="star-select" onchange="saveRating('${clipId}', 'tech_word_pronunciation', this.value)">
+            <option value="">Rate...</option>
+            <option value="5">5 — Crisp English tech jargon</option>
+            <option value="4">4 — Intelligible loanwords</option>
+            <option value="3">3 — Heavy Tamilized accent</option>
+            <option value="2">2 — Distorted / Muffled</option>
+            <option value="1">1 — Completely dropped/skipped</option>
+          </select>
+        </div>
+        <div class="rating-row">
+          <label>Clarity & Articulation:</label>
+          <select class="star-select" onchange="saveRating('${clipId}', 'clarity', this.value)">
+            <option value="">Rate...</option>
+            <option value="5">5 — Studio clear</option>
+            <option value="4">4 — Clean audio</option>
+            <option value="3">3 — Slight hiss/vocoder artifact</option>
+            <option value="2">2 — Muffled / Low fidelity</option>
+            <option value="1">1 — Broken audio</option>
+          </select>
+        </div>
+        <div class="rating-row">
+          <label>Missing / Dropped Words:</label>
+          <select class="star-select" onchange="saveRating('${clipId}', 'missing_words', this.value)">
+            <option value="None">None (100% complete)</option>
+            <option value="Minor hesitation">Minor hesitation</option>
+            <option value="English terms dropped">English terms dropped</option>
+            <option value="Severe truncation">Severe truncation</option>
+          </select>
+        </div>
+        <div class="rating-row">
+          <label>Overall Preference (1-10):</label>
+          <select class="star-select" onchange="saveRating('${clipId}', 'overall', this.value)">
+            <option value="">Score...</option>
+            <option value="10">10 — Outstanding Bookey Voice</option>
+            <option value="9">9 — Excellent</option>
+            <option value="8">8 — Strong Contender</option>
+            <option value="7">7 — Good</option>
+            <option value="6">6 — Acceptable</option>
+            <option value="5">5 — Borderline</option>
+            <option value="4">4 — Weak</option>
+            <option value="3">3 — Poor</option>
+            <option value="2">2 — Bad</option>
+            <option value="1">1 — Reject</option>
+          </select>
+        </div>
+        <div>
+          <textarea class="notes-input" placeholder="Your qualitative notes on this voice sample..." onchange="saveRating('${clipId}', 'notes', this.value)"></textarea>
+        </div>
+        <div class="save-indicator" id="save-${clipId}">Saved!</div>
+      `;
+    }
+
+    // Reference clip definitions
+    const FISH_SPEECH_REFS = [
+      { id: "01", bucket: "1", file: "reference_fish_speech/01_karthik_kumar_solo_tng.wav", text: "vanakkam da mapla, sowkyama?", dur: "1.79s" },
+      { id: "02", bucket: "1", file: "reference_fish_speech/02_karthik_kumar_solo_tng.wav", text: "enakku indha padam romba pidichathu", dur: "1.96s" },
+      { id: "03", bucket: "1", file: "reference_fish_speech/03_karthik_kumar_solo_tng.wav", text: "aluvalar ippo ellam smartphone la work panreenga", dur: "3.50s" },
+      { id: "04", bucket: "2", file: "reference_fish_speech/04_karthik_kumar_solo_tng.wav", text: "machi, nalaikku chennai la enna weather?", dur: "2.13s" },
+      { id: "05", bucket: "2", file: "reference_fish_speech/05_karthik_kumar_solo_tng.wav", text: "meeting mudinjatha? call me back please", dur: "1.88s" },
+      { id: "06", bucket: "2", file: "reference_fish_speech/06_karthik_kumar_solo_tng.wav", text: "unga family la ellarum nalla iruka?", dur: "2.22s" },
+      { id: "07", bucket: "2", file: "reference_fish_speech/07_karthik_kumar_solo_tng.wav", text: "nan romba tired-a irruken, konjam rest pannanum", dur: "4.14s" },
+      { id: "08", bucket: "2", file: "reference_fish_speech/08_karthik_kumar_solo_tng.wav", text: "netflix la puthu series onnu vanthiruku, super-a iruku", dur: "5.80s" },
+      { id: "09", bucket: "2", file: "reference_fish_speech/09_karthik_kumar_solo_tng.wav", text: "chennai traffic la stuck aayiten, sorry late-a varen", dur: "3.24s" },
+      { id: "10", bucket: "2", file: "reference_fish_speech/10_karthik_kumar_solo_tng.wav", text: "sapadu ready-a? pasi-a irruku", dur: "1.54s" },
+      { id: "11", bucket: "3", file: "reference_fish_speech/11_karthik_kumar_solo_tng.wav", text: "actually, my flight got delayed, so I'll reach late", dur: "2.82s" },
+      { id: "12", bucket: "3", file: "reference_fish_speech/12_karthik_kumar_solo_tng.wav", text: "onnu, rendu, munu, naalu, anju", dur: "2.13s" },
+      { id: "13", bucket: "3", file: "reference_fish_speech/13_karthik_kumar_solo_tng.wav", text: "MGR-oda padam paatha, thala Ajith fan aaiten", dur: "3.20s" },
+      { id: "14", bucket: "3", file: "reference_fish_speech/14_karthik_kumar_solo_tng.wav", text: "nethu poi office la meeting attend panniten, appuram friend kitte pesi sapada poiten", dur: "6.70s" },
+      { id: "15", bucket: "3", file: "reference_fish_speech/15_karthik_kumar_solo_tng.wav", text: "ivlo late-a enna panra? padikkalaya?", dur: "2.39s" }
+    ];
+
+    function renderReferenceCards() {
+      FISH_SPEECH_REFS.forEach(item => {
+        const container = document.getElementById(`ref-bucket-${item.bucket}`);
+        if (!container) return;
+        const clipId = `ref_fish_${item.id}`;
+        const card = document.createElement('div');
+        card.className = 'candidate-card';
+        card.innerHTML = `
+          <div class="card-header">
+            <div>
+              <div class="model-name">Fish-Speech Tanglish LoRA #${item.id}</div>
+              <div class="model-sub">Speaker: karthik_kumar_solo (Chennai reference)</div>
+            </div>
+            <span class="badge badge-reference">CC-BY-NC-SA 4.0</span>
+          </div>
+          <div class="script-box">
+            <div class="script-label"><span>Reference Text</span><span class="badge badge-script">Romanized Tanglish</span></div>
+            <div class="script-text">${item.text}</div>
+          </div>
+          <div class="metrics-row">
+            <div class="metrics-item"><span>Hardware:</span><span class="metrics-val">NVIDIA L4 24GB</span></div>
+            <div class="metrics-item"><span>Dur:</span><span class="metrics-val">${item.dur}</span></div>
+            <div class="metrics-item"><span>SR:</span><span class="metrics-val">44.1 kHz</span></div>
+          </div>
+          <audio controls preload="none">
+            <source src="output/${item.file}" type="audio/wav">
+          </audio>
+          <div class="rating-section" id="rate-${clipId}"></div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Storage Management
+    const STORAGE_KEY = 'bookey_tts_audition_ratings_v1';
+    let userRatings = {};
+
+    function loadRatings() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) userRatings = JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to load ratings:", e);
+      }
+      updateRatingsCount();
+    }
+
+    function saveRating(clipId, key, value) {
+      if (!userRatings[clipId]) userRatings[clipId] = {};
+      userRatings[clipId][key] = value;
+      userRatings[clipId].last_updated = new Date().toISOString();
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(userRatings));
+        const ind = document.getElementById(`save-${clipId}`);
+        if (ind) {
+          ind.style.display = 'block';
+          setTimeout(() => { ind.style.display = 'none'; }, 1500);
+        }
+      } catch (e) {
+        console.error("Storage error:", e);
+      }
+      updateRatingsCount();
+    }
+
+    function populateForms() {
+      document.querySelectorAll('.rating-section').forEach(sec => {
+        const clipId = sec.id.replace('rate-', '');
+        sec.innerHTML = createRatingForm(clipId);
+        // Hydrate from stored ratings
+        const saved = userRatings[clipId];
+        if (saved) {
+          const selects = sec.querySelectorAll('select');
+          if (saved.naturalness && selects[0]) selects[0].value = saved.naturalness;
+          if (saved.tanglish_pronunciation && selects[1]) selects[1].value = saved.tanglish_pronunciation;
+          if (saved.tech_word_pronunciation && selects[2]) selects[2].value = saved.tech_word_pronunciation;
+          if (saved.clarity && selects[3]) selects[3].value = saved.clarity;
+          if (saved.missing_words && selects[4]) selects[4].value = saved.missing_words;
+          if (saved.overall && selects[5]) selects[5].value = saved.overall;
+          const txt = sec.querySelector('textarea');
+          if (saved.notes && txt) txt.value = saved.notes;
+        }
+      });
+    }
+
+    function updateRatingsCount() {
+      const ratedCount = Object.keys(userRatings).length;
+      document.getElementById('ratings-count').textContent = `${ratedCount} clips rated`;
+    }
+
+    function exportRatings(format) {
+      if (Object.keys(userRatings).length === 0) {
+        alert("You have not entered any ratings yet. Listen to clips and assign ratings first!");
+        return;
+      }
+      if (format === 'json') {
+        const blob = new Blob([JSON.stringify(userRatings, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bookey_tts_audition_ratings_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+      } else if (format === 'csv') {
+        let csv = 'Clip_ID,Naturalness,Tanglish_Pronunciation,Technical_Words,Clarity,Missing_Words,Overall_Score,Notes,Last_Updated\n';
+        for (const [id, r] of Object.entries(userRatings)) {
+          const notesClean = (r.notes || '').replace(/"/g, '""');
+          csv += `"${id}","${r.naturalness||''}","${r.tanglish_pronunciation||''}","${r.tech_word_pronunciation||''}","${r.clarity||''}","${r.missing_words||''}","${r.overall||''}","${notesClean}","${r.last_updated||''}"\n`;
+        }
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bookey_tts_audition_ratings_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+      }
+    }
+
+    function clearRatings() {
+      if (confirm("Are you sure you want to reset all your ratings? This cannot be undone.")) {
+        localStorage.removeItem(STORAGE_KEY);
+        userRatings = {};
+        populateForms();
+        updateRatingsCount();
+      }
+    }
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      loadRatings();
+      renderReferenceCards();
+      populateForms();
+    });
+  </script>
+</body>
+</html>

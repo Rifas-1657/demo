@@ -48,5 +48,5 @@ backend/test_run.log
 backend/*.log
 iqrabook/frontend/.next/
 # Prebuilt and generated audio binaries (preserve manifest.json)
-public/audio/**/*.mp3
-public/audio/**/*.wav
+# public/audio/**/*.mp3
+# public/audio/**/*.wav

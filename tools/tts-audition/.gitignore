@@ -1,0 +1,14 @@
+# Isolated TTS Audition ignores
+.venv/
+.venv*/
+models/
+output/
+__pycache__/
+*.safetensors
+*.onnx
+*.ckpt
+*.bin
+*.pt
+*.pth
+*.wav
+*.mp3
