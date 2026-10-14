@@ -12,13 +12,14 @@ export interface NarrationSegment {
 }
 
 export interface AudioPlayer {
-  readonly kind: 'mock' | 'tts'
+  readonly kind: 'mock' | 'tts' | 'prebuilt'
   /** False for the mock: the UI must not imply real audio is playing. */
   readonly producesSound: boolean
   speak(segment: NarrationSegment): void
   pause(): void
   resume(): void
   stop(): void
+  seek?(fraction: number): void
   setRate(rate: number): void
   setMuted(muted: boolean): void
   dispose(): void
@@ -46,6 +47,94 @@ export function createMockAudioPlayer(): AudioPlayer {
     setMuted() {},
     dispose() {
       state = 'stopped'
+    },
+  }
+}
+
+/** AudioPlayer for prebuilt static audio assets (e.g. /audio/python-demo/page-01.mp3). */
+export function createPrebuiltAudioPlayer(audioUrl: string): AudioPlayer {
+  let audio: HTMLAudioElement | null = null
+  let currentRate = 1.0
+  let currentMuted = false
+  let state: 'stopped' | 'speaking' | 'paused' = 'stopped'
+
+  function getAudio(): HTMLAudioElement | null {
+    if (typeof window === 'undefined') return null
+    if (!audio) {
+      audio = new Audio(audioUrl)
+      audio.preload = 'auto'
+      audio.playbackRate = currentRate
+      audio.muted = currentMuted
+      audio.onended = () => {
+        state = 'stopped'
+      }
+    }
+    return audio
+  }
+
+  return {
+    kind: 'prebuilt',
+    producesSound: true,
+    speak(_segment: NarrationSegment) {
+      state = 'speaking'
+      const a = getAudio()
+      if (!a) return
+      a.playbackRate = currentRate
+      a.muted = currentMuted
+      if (a.paused) {
+        a.play().catch((err) => {
+          console.warn('[prebuilt-audio] Playback failed:', err)
+        })
+      }
+    },
+    pause() {
+      state = 'paused'
+      if (audio && !audio.paused) {
+        audio.pause()
+      }
+    },
+    resume() {
+      state = 'speaking'
+      const a = getAudio()
+      if (a && a.paused) {
+        a.playbackRate = currentRate
+        a.muted = currentMuted
+        a.play().catch((err) => {
+          console.warn('[prebuilt-audio] Resume failed:', err)
+        })
+      }
+    },
+    stop() {
+      state = 'stopped'
+      if (audio) {
+        audio.pause()
+        audio.currentTime = 0
+      }
+    },
+    seek(fraction: number) {
+      if (audio && Number.isFinite(audio.duration) && audio.duration > 0) {
+        audio.currentTime = Math.max(0, Math.min(audio.duration, audio.duration * fraction))
+      }
+    },
+    setRate(rate: number) {
+      currentRate = rate
+      if (audio) {
+        audio.playbackRate = rate
+      }
+    },
+    setMuted(muted: boolean) {
+      currentMuted = muted
+      if (audio) {
+        audio.muted = muted
+      }
+    },
+    dispose() {
+      state = 'stopped'
+      if (audio) {
+        audio.pause()
+        audio.currentTime = 0
+        audio = null
+      }
     },
   }
 }

@@ -5,7 +5,8 @@ import { useBookClient, useBookEvent } from '@/lib/book-client/react'
 import { isApiConfigured } from '@/lib/api/client'
 import { segmentIdFor } from '@/lib/contracts/book-events'
 import type { BookLessonPage, NarrationCueEvent, NarrationStatus } from '@/types/book'
-import { createMockAudioPlayer, createTtsAudioPlayer, type AudioPlayer } from './audio-player'
+import { createMockAudioPlayer, createPrebuiltAudioPlayer, createTtsAudioPlayer, type AudioPlayer } from './audio-player'
+import { getPrebuiltAudioUrl } from './python-demo-audio'
 import { buildNarrationCues } from './cues'
 import { tokenizeNarration, type NarrationSentence, type NarrationWord } from './tokenize'
 
@@ -313,7 +314,13 @@ export function useNarrationStream({
     if (status === 'completed') emitComplete()
   }, [status, pass])
 
-  const [player] = useState(() => (isApiConfigured() ? createTtsAudioPlayer() : createMockAudioPlayer()))
+  const player = useMemo(() => {
+    const prebuiltUrl = getPrebuiltAudioUrl(courseId, pageId)
+    if (prebuiltUrl) {
+      return createPrebuiltAudioPlayer(prebuiltUrl)
+    }
+    return isApiConfigured() ? createTtsAudioPlayer() : createMockAudioPlayer()
+  }, [courseId, pageId])
   const sentenceIndex = wordIndex >= 0 && wordIndex < words.length ? words[wordIndex].sentence : -1
 
   useEffect(() => () => player.dispose(), [player])
@@ -338,6 +345,7 @@ export function useNarrationStream({
     if (wordIndex < 0) return
     const clamped = Math.min(words.length, Math.max(0, target))
     dispatch({ type: 'seek', wordIndex: clamped })
+    player.seek?.(clamped / Math.max(1, words.length))
     const current = link.current
     if (current.key === sessionKey && current.sessionId) {
       client.seek({ sessionId: current.sessionId, segmentId: segmentFor(clamped), wordIndex: clamped })
@@ -378,7 +386,10 @@ export function useNarrationStream({
     play: () => dispatch({ type: 'play' }),
     pause: () => dispatch({ type: 'pause' }),
     toggle: () => dispatch({ type: status === 'speaking' ? 'pause' : 'play' }),
-    restart: () => dispatch({ type: 'restart' }),
+    restart: () => {
+      player.stop()
+      dispatch({ type: 'restart' })
+    },
     previousSentence,
     nextSentence,
     seekToWord,
