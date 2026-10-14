@@ -41,6 +41,10 @@ def _record(name: str, value_ms: float) -> None:
 async def get_stt() -> "SpeechToText":
     from app.config import get_settings
     s = get_settings()
+    if s.stt_provider.lower() == "local":
+        from app.voice.stt.faster_whisper import FasterWhisperSTT
+        return FasterWhisperSTT(model_name=s.faster_whisper_model)
+
     if s.groq_api_key:
         from app.voice.stt.groq_whisper import GroqWhisperSTT
         return GroqWhisperSTT(
@@ -56,7 +60,16 @@ def get_tts_chain():
     from app.config import get_settings
     s = get_settings()
     providers = []
-    if s.gemini_api_key:
+    if s.tts_provider.lower() == "bodhan" and s.bodhan_api_key:
+        from app.voice.tts.bodhan_tts import BodhanTTSProvider
+        providers.append(BodhanTTSProvider(
+            api_key=s.bodhan_api_key,
+            model=s.bodhan_tts_model,
+            default_voice=s.bodhan_tts_voice,
+            lang=s.bodhan_tts_lang,
+            style=s.bodhan_tts_style,
+        ))
+    elif s.tts_provider.lower() == "gemini" and s.gemini_api_key:
         from app.voice.tts.gemini_tts import GeminiTTSProvider
         providers.append(GeminiTTSProvider(
             api_key=s.gemini_api_key,

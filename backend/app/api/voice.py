@@ -2,8 +2,8 @@
 app/api/voice.py — REST endpoints for Text-to-Speech (TTS) and Speech-to-Text (STT).
 
 Endpoints:
-- POST /api/voice/tts: Synthesizes narration text using Gemini 3.8 Flash TTS.
-- POST /api/voice/stt: Transcribes recorded audio using Groq Whisper Large v3 Turbo.
+- POST /api/voice/tts: Synthesizes narration text using cached Bodhan Indic-Speak (or Gemini) TTS.
+- POST /api/voice/stt: Transcribes recorded audio using local faster-whisper (or Groq Whisper).
 """
 from __future__ import annotations
 
@@ -16,8 +16,16 @@ from fastapi import APIRouter, File, Form, HTTPException, Query, Response, Uploa
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
+from app.voice.cache import (
+    compute_voice_cache_key,
+    get_key_lock,
+    get_voice_cache,
+    set_voice_cache,
+)
 from app.voice.normalizer import normalize_for_tts
+from app.voice.stt.faster_whisper import FasterWhisperSTT
 from app.voice.stt.groq_whisper import DEFAULT_TANG_VOCAB_HINT, SUPPORTED_AUDIO_EXTENSIONS, GroqWhisperSTT
+from app.voice.tts.bodhan_tts import BodhanTTSProvider
 from app.voice.tts.gemini_tts import GeminiTTSProvider
 
 log = logging.getLogger(__name__)
@@ -61,8 +69,9 @@ async def text_to_speech(
     format: str = Query("audio", description="Response format: 'audio' (binary) or 'json'"),
 ) -> Response:
     """
-    Synthesize lesson narration text using Gemini 3.8 Flash TTS.
-    Returns playable audio bytes (default) or base64 JSON payload.
+    Synthesize lesson narration text.
+    Checks persistent disk cache first (0 API calls on cache hit).
+    On cache miss, synthesizes via Bodhan Indic-Speak (or Gemini) and caches atomically.
     """
     cleaned_text = normalize_for_tts(req.text).strip()
     if not cleaned_text:
@@ -72,67 +81,200 @@ async def text_to_speech(
         )
 
     settings = get_settings()
-    if not settings.gemini_api_key:
-        # Check if fallback edge-tts is available or fail cleanly with 503
+    provider_name = settings.tts_provider.lower()
+
+    # Determine provider parameters for cache key computation
+    if provider_name == "bodhan":
+        model = settings.bodhan_tts_model
+        voice = req.voice or settings.bodhan_tts_voice
+        lang = settings.bodhan_tts_lang
+        style = settings.bodhan_tts_style
+    elif provider_name == "gemini":
+        model = settings.bookey_tts_model
+        voice = req.voice or settings.bookey_tts_voice
+        lang = "ta"
+        style = settings.bookey_tts_style
+    else:
+        model = "edge"
+        voice = req.voice or settings.edge_tts_voice
+        lang = "ta"
+        style = "default"
+
+    cache_key = compute_voice_cache_key(
+        text=cleaned_text,
+        model=model,
+        voice=voice,
+        lang=lang,
+        style=style,
+        speed=req.speed,
+    )
+
+    # 1. Fast path: check persistent cache
+    cached = get_voice_cache(cache_key)
+    if cached is not None:
+        audio_bytes, meta = cached
+        mime_type = meta.get("mime_type", "audio/wav")
+        duration_ms = meta.get("duration_ms", 0)
+
+        if format == "json":
+            json_data = TTSResponseJSON(
+                audio_base64=base64.b64encode(audio_bytes).decode("ascii"),
+                mime_type=mime_type,
+                duration_ms=duration_ms,
+            )
+            return Response(
+                content=json_data.model_dump_json(),
+                media_type="application/json",
+                headers={"X-Cache": "HIT"},
+            )
+
+        return Response(
+            content=audio_bytes,
+            media_type=mime_type,
+            headers={
+                "Content-Disposition": "inline; filename=speech.wav",
+                "Cache-Control": "public, max-age=86400",
+                "X-Cache": "HIT",
+            },
+        )
+
+    # 2. Slow path: Acquire per-key lock to coordinate concurrent requests for same audio
+    lock = await get_key_lock(cache_key)
+    async with lock:
+        # Re-check cache in case another request populated it while waiting
+        cached = get_voice_cache(cache_key)
+        if cached is not None:
+            audio_bytes, meta = cached
+            mime_type = meta.get("mime_type", "audio/wav")
+            duration_ms = meta.get("duration_ms", 0)
+
+            if format == "json":
+                json_data = TTSResponseJSON(
+                    audio_base64=base64.b64encode(audio_bytes).decode("ascii"),
+                    mime_type=mime_type,
+                    duration_ms=duration_ms,
+                )
+                return Response(
+                    content=json_data.model_dump_json(),
+                    media_type="application/json",
+                    headers={"X-Cache": "HIT"},
+                )
+
+            return Response(
+                content=audio_bytes,
+                media_type=mime_type,
+                headers={
+                    "Content-Disposition": "inline; filename=speech.wav",
+                    "Cache-Control": "public, max-age=86400",
+                    "X-Cache": "HIT",
+                },
+            )
+
+        # Synthesize via provider
         if not settings.voice_enabled:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Voice service is disabled",
             )
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Gemini TTS service is not configured (missing API key)",
-        )
 
-    provider = GeminiTTSProvider(
-        api_key=settings.gemini_api_key,
-        model=settings.bookey_tts_model,
-        default_voice=settings.bookey_tts_voice,
-        style=settings.bookey_tts_style,
-    )
-
-    try:
-        result = await provider.synthesize(
-            text=cleaned_text,
-            voice=req.voice or "",
-            speed=req.speed,
-        )
-    except ValueError as ve:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
-    except (TimeoutError, httpx.TimeoutException):
-        raise HTTPException(
-            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail="TTS provider request timed out",
-        )
-    except Exception as exc:
-        err_msg = str(exc)
-        if "429" in err_msg or "rate limit" in err_msg.lower():
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="TTS provider rate limit reached. Please retry in a few moments.",
+        if provider_name == "bodhan":
+            if not settings.bodhan_api_key:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Bodhan TTS service is not configured (missing BODHAN_API_KEY)",
+                )
+            provider = BodhanTTSProvider(
+                api_key=settings.bodhan_api_key,
+                model=model,
+                default_voice=voice,
+                lang=lang,
+                style=style,
             )
-        log.warning("TTS generation failure: %s", type(exc).__name__)
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Speech synthesis upstream provider error",
+        elif provider_name == "gemini":
+            if not settings.gemini_api_key:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Gemini TTS service is not configured (missing API key)",
+                )
+            provider = GeminiTTSProvider(
+                api_key=settings.gemini_api_key,
+                model=model,
+                default_voice=voice,
+                style=style,
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"TTS provider '{provider_name}' is not configured",
+            )
+
+        try:
+            result = await provider.synthesize(
+                text=cleaned_text,
+                voice=voice,
+                speed=req.speed,
+            )
+        except ValueError as ve:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+        except (TimeoutError, httpx.TimeoutException):
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail="TTS provider request timed out",
+            )
+        except Exception as exc:
+            err_msg = str(exc)
+            if "429" in err_msg or "rate limit" in err_msg.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="TTS provider rate limit reached. Please retry in a few moments.",
+                )
+            log.warning("TTS generation failure: %s", type(exc).__name__)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Speech synthesis upstream provider error",
+            )
+
+        # Store to persistent cache
+        set_voice_cache(
+            key=cache_key,
+            audio_bytes=result.audio_bytes,
+            metadata={
+                "text": cleaned_text,
+                "model": model,
+                "voice": voice,
+                "lang": lang,
+                "style": style,
+                "speed": req.speed,
+                "duration_ms": result.duration_ms,
+                "mime_type": result.mime_type,
+                "timings": [
+                    {"word": wt.word, "startMs": wt.start_ms, "endMs": wt.end_ms}
+                    for wt in result.word_timings
+                ],
+            },
         )
 
-    if format == "json":
-        json_data = TTSResponseJSON(
-            audio_base64=base64.b64encode(result.audio_bytes).decode("ascii"),
-            mime_type=result.mime_type,
-            duration_ms=result.duration_ms,
-        )
-        return Response(content=json_data.model_dump_json(), media_type="application/json")
+        if format == "json":
+            json_data = TTSResponseJSON(
+                audio_base64=base64.b64encode(result.audio_bytes).decode("ascii"),
+                mime_type=result.mime_type,
+                duration_ms=result.duration_ms,
+            )
+            return Response(
+                content=json_data.model_dump_json(),
+                media_type="application/json",
+                headers={"X-Cache": "MISS"},
+            )
 
-    return Response(
-        content=result.audio_bytes,
-        media_type=result.mime_type,
-        headers={
-            "Content-Disposition": "inline; filename=speech.wav",
-            "Cache-Control": "public, max-age=3600",
-        },
-    )
+        return Response(
+            content=result.audio_bytes,
+            media_type=result.mime_type,
+            headers={
+                "Content-Disposition": "inline; filename=speech.wav",
+                "Cache-Control": "public, max-age=86400",
+                "X-Cache": "MISS",
+            },
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -145,14 +287,9 @@ async def speech_to_text(
     language: str | None = Form(default=None, description="Optional BCP-47 language hint, e.g. 'ta' or 'en'"),
 ) -> STTResponse:
     """
-    Transcribes audio using Groq Whisper Large v3 Turbo with Tanglish vocabulary hints.
+    Transcribes audio using local faster-whisper (default) or Groq Whisper.
     """
     settings = get_settings()
-    if not settings.groq_api_key:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Speech-to-text service is not configured (missing Groq API key)",
-        )
 
     # Validate file extension / format
     filename = (file.filename or "").lower()
@@ -184,11 +321,28 @@ async def speech_to_text(
         )
 
     mime = content_type or f"audio/{ext}" if ext else "audio/webm"
-    stt_provider = GroqWhisperSTT(
-        api_key=settings.groq_api_key,
-        model=settings.bookey_stt_model or settings.groq_whisper_model,
-        vocab_hint=DEFAULT_TANG_VOCAB_HINT,
-    )
+    provider_name = settings.stt_provider.lower()
+
+    if provider_name == "local":
+        stt_provider = FasterWhisperSTT(
+            model_name=settings.faster_whisper_model,
+        )
+    elif provider_name == "groq":
+        if not settings.groq_api_key:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Speech-to-text service is not configured (missing Groq API key)",
+            )
+        stt_provider = GroqWhisperSTT(
+            api_key=settings.groq_api_key,
+            model=settings.bookey_stt_model or settings.groq_whisper_model,
+            vocab_hint=DEFAULT_TANG_VOCAB_HINT,
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"STT provider '{provider_name}' is not configured",
+        )
 
     try:
         result = await stt_provider.transcribe(

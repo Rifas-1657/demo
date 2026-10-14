@@ -16,7 +16,10 @@ from app.main import app
 
 
 @pytest.fixture
-def mock_gemini():
+def mock_gemini(tmp_path, monkeypatch):
+    from app.config import get_settings
+    monkeypatch.setattr(get_settings(), "audio_cache_dir", str(tmp_path))
+    monkeypatch.setattr(get_settings(), "tts_provider", "gemini")
     with patch("app.voice.tts.gemini_tts.httpx.AsyncClient") as mock_cls:
         client = AsyncMock()
         mock_cls.return_value.__aenter__.return_value = client
@@ -24,7 +27,9 @@ def mock_gemini():
 
 
 @pytest.fixture
-def mock_groq():
+def mock_groq(monkeypatch):
+    from app.config import get_settings
+    monkeypatch.setattr(get_settings(), "stt_provider", "groq")
     with patch("app.voice.stt.groq_whisper.httpx.AsyncClient") as mock_cls:
         client = AsyncMock()
         mock_cls.return_value.__aenter__.return_value = client
@@ -284,6 +289,7 @@ async def test_stt_oversize_audio(monkeypatch):
 async def test_stt_missing_api_key(monkeypatch):
     """Missing Groq API key returns 503 Service Unavailable."""
     from app.config import get_settings
+    monkeypatch.setattr(get_settings(), "stt_provider", "groq")
     monkeypatch.setattr(get_settings(), "groq_api_key", "")
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

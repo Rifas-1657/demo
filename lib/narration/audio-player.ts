@@ -1,6 +1,10 @@
 /**
- * Seam for a future text-to-speech engine. The narration stream drives this
- * interface; today only the silent mock exists, so nothing is ever played.
+ * Audio player implementation for Bookey narration.
+ * Backed by the Bookey backend /api/voice/tts endpoint with:
+ * - Module-scoped persistent URL and in-flight request cache
+ * - Smooth pause/resume without re-fetching or re-synthesizing
+ * - Rate limit (429) backoff cooldown
+ * - Browser Web Speech API fallback when backend is unavailable
  */
 export interface NarrationSegment {
   text: string
@@ -46,52 +50,65 @@ export function createMockAudioPlayer(): AudioPlayer {
   }
 }
 
+// Module-level caches survive player recreation and component remounts
+const GLOBAL_URL_CACHE = new Map<string, string>()
+const GLOBAL_IN_FLIGHT = new Map<string, Promise<string>>()
+let rateLimitCooldownUntil = 0
+
+function fallbackBrowserSpeak(text: string, rate: number, muted: boolean) {
+  if (muted || typeof window === 'undefined' || !('speechSynthesis' in window)) return
+  try {
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = Math.max(0.7, Math.min(1.5, rate))
+    utterance.lang = 'ta-IN'
+    window.speechSynthesis.speak(utterance)
+  } catch (e) {
+    console.warn('[tts-player] Web Speech fallback failed:', e)
+  }
+}
+
 /** Real TTS AudioPlayer backed by the Bookey backend /api/voice/tts endpoint. */
 export function createTtsAudioPlayer(): AudioPlayer {
   let currentAudio: HTMLAudioElement | null = null
   let currentRate = 1.0
   let currentMuted = false
   let state: 'stopped' | 'speaking' | 'paused' = 'stopped'
-  const urlCache = new Map<string, string>()
-  const inFlight = new Set<string>()
 
   function fetchAudio(text: string): Promise<string> {
     const trimmed = text.trim()
     if (!trimmed) return Promise.reject(new Error('Empty text'))
-    const cached = urlCache.get(trimmed)
+
+    const cached = GLOBAL_URL_CACHE.get(trimmed)
     if (cached) return Promise.resolve(cached)
 
-    if (inFlight.has(trimmed)) {
-      return new Promise((resolve, reject) => {
-        let attempts = 0
-        const check = setInterval(() => {
-          attempts++
-          const c = urlCache.get(trimmed)
-          if (c) {
-            clearInterval(check)
-            resolve(c)
-          } else if (!inFlight.has(trimmed) || attempts > 100) {
-            clearInterval(check)
-            reject(new Error('Fetch timed out or failed'))
-          }
-        }, 100)
-      })
+    const inFlight = GLOBAL_IN_FLIGHT.get(trimmed)
+    if (inFlight) return inFlight
+
+    if (Date.now() < rateLimitCooldownUntil) {
+      return Promise.reject(new Error('TTS rate limited, waiting for cooldown'))
     }
 
-    inFlight.add(trimmed)
-    return import('@/lib/api/client')
+    const promise = import('@/lib/api/client')
       .then(({ synthesizeSpeech }) => synthesizeSpeech(trimmed, undefined, currentRate))
       .then((blob) => {
-        inFlight.delete(trimmed)
+        GLOBAL_IN_FLIGHT.delete(trimmed)
         const objectUrl = URL.createObjectURL(blob)
-        urlCache.set(trimmed, objectUrl)
+        GLOBAL_URL_CACHE.set(trimmed, objectUrl)
         return objectUrl
       })
       .catch((err) => {
-        inFlight.delete(trimmed)
+        GLOBAL_IN_FLIGHT.delete(trimmed)
+        const msg = String(err?.message || err)
+        if (msg.includes('429') || msg.toLowerCase().includes('rate limit')) {
+          rateLimitCooldownUntil = Date.now() + 5000 // 5s backoff
+        }
         console.warn('[tts-player] speech synthesis failed:', err)
         throw err
       })
+
+    GLOBAL_IN_FLIGHT.set(trimmed, promise)
+    return promise
   }
 
   return {
@@ -102,8 +119,15 @@ export function createTtsAudioPlayer(): AudioPlayer {
       const text = segment.text.trim()
       if (!text) return
 
-      // If current audio is already playing this exact text, keep playing
-      if (currentAudio && !currentAudio.paused && (currentAudio as unknown as { _text?: string })._text === text) {
+      // If current audio is already for this exact text:
+      if (currentAudio && (currentAudio as unknown as { _text?: string })._text === text) {
+        if (currentAudio.paused) {
+          currentAudio.playbackRate = currentRate
+          currentAudio.muted = currentMuted
+          currentAudio.play().catch((err) => {
+            console.warn('[tts-player] Resume playback failed:', err)
+          })
+        }
         return
       }
 
@@ -111,6 +135,9 @@ export function createTtsAudioPlayer(): AudioPlayer {
       if (currentAudio) {
         currentAudio.pause()
         currentAudio = null
+      }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
       }
 
       fetchAudio(text)
@@ -133,12 +160,20 @@ export function createTtsAudioPlayer(): AudioPlayer {
             console.warn('[tts-player] Playback failed (browser policy or decode error):', err)
           })
         })
-        .catch(() => {})
+        .catch(() => {
+          // Graceful fallback to browser speech synthesis
+          if (state === 'speaking') {
+            fallbackBrowserSpeak(text, currentRate, currentMuted)
+          }
+        })
     },
     pause() {
       state = 'paused'
       if (currentAudio) {
         currentAudio.pause()
+      }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.pause()
       }
     },
     resume() {
@@ -148,6 +183,9 @@ export function createTtsAudioPlayer(): AudioPlayer {
           console.warn('[tts-player] Resume playback failed:', err)
         })
       }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window && window.speechSynthesis.paused) {
+        window.speechSynthesis.resume()
+      }
     },
     stop() {
       state = 'stopped'
@@ -155,6 +193,9 @@ export function createTtsAudioPlayer(): AudioPlayer {
         currentAudio.pause()
         currentAudio.currentTime = 0
         currentAudio = null
+      }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
       }
     },
     setRate(rate: number) {
@@ -175,13 +216,9 @@ export function createTtsAudioPlayer(): AudioPlayer {
         currentAudio.pause()
         currentAudio = null
       }
-      for (const url of urlCache.values()) {
-        try {
-          URL.revokeObjectURL(url)
-        } catch {}
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
       }
-      urlCache.clear()
     },
   }
 }
-

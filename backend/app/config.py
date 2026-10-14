@@ -143,17 +143,30 @@ class Settings(BaseSettings):
     # =========================================================
     # B5: Voice (STT + TTS)
     # =========================================================
-    # STT (Groq Whisper Large v3 Turbo)
+    # Providers
+    tts_provider: str = "bodhan"        # bodhan, gemini, edge, silent
+    stt_provider: str = "local"         # local, groq
+
+    # STT (Local Faster-Whisper & Groq Whisper)
+    faster_whisper_model: str = "large-v3-turbo"
     bookey_stt_model: str = "whisper-large-v3-turbo"
     groq_whisper_model: str = "whisper-large-v3-turbo"
-    faster_whisper_model: str = "large-v3-turbo"
 
-    # TTS (Gemini 3.8 Flash TTS)
+    # TTS: Bodhan Indic-Speak
+    bodhan_api_key: str = ""
+    bodhan_tts_model: str = "indic-speak"
+    bodhan_tts_voice: str = "Anitha"
+    bodhan_tts_lang: str = "ta"
+    bodhan_tts_style: str = "educational lecture"
+
+    # TTS: Gemini 3.8 Flash TTS & Edge
     bookey_tts_model: str = "gemini-3.8-flash-tts"
     bookey_tts_voice: str = "Puck"
     bookey_tts_style: str = "clear, warm, patient teaching style"
     edge_tts_voice: str = "ta-IN-ValluvarNeural"
-    audio_cache_dir: str = "./audio_cache"
+
+    # Audio Cache
+    audio_cache_dir: str = "backend/.cache/bookey-voice"
     voice_enabled: bool = True
     tts_first_sentence_only: bool = True  # start playback after first sentence
 

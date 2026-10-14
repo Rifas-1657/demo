@@ -42,6 +42,9 @@ qa/results/
 # Backend runtime dirs (use S3 in production)
 backend/uploads/
 backend/audio_cache/
+backend/.cache/
+.cache/
 backend/test_run.log
 backend/*.log
 iqrabook/frontend/.next/
+
