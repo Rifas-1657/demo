@@ -57,6 +57,10 @@ class STTResponse(BaseModel):
     transcript: str
     language: str
     duration_s: float
+    raw_text: str | None = Field(default=None, description="Original uncorrected transcript")
+    correction_applied: bool = Field(default=False, description="Whether LLM correction was applied")
+    provider: str = Field(default="local", description="STT provider used")
+    confidence: float | None = Field(default=None, description="Transcription confidence (0-1)")
 
 
 # ---------------------------------------------------------------------------
@@ -285,9 +289,15 @@ async def text_to_speech(
 async def speech_to_text(
     file: UploadFile = File(..., description="Recorded audio file"),
     language: str | None = Form(default=None, description="Optional BCP-47 language hint, e.g. 'ta' or 'en'"),
+    page_title: str | None = Form(default=None, description="Current page/lesson title for context"),
+    page_keywords: str | None = Form(default=None, description="Comma-separated key terms from current page"),
 ) -> STTResponse:
     """
     Transcribes audio using local faster-whisper (default) or Groq Whisper.
+    
+    Supports:
+    - Context-aware prompts (page_title, page_keywords)
+    - Optional LLM post-correction for Python terms
     """
     settings = get_settings()
 
@@ -352,11 +362,43 @@ async def speech_to_text(
         )
 
     try:
+        # Parse page keywords
+        keywords_list = None
+        if page_keywords:
+            keywords_list = [k.strip() for k in page_keywords.split(",") if k.strip()]
+        
+        # Transcribe with context
         result = await stt_provider.transcribe(
             audio_bytes=audio_bytes,
             mime=mime,
             hint_lang=language,
+            page_title=page_title,
+            page_keywords=keywords_list,
         )
+        
+        # Apply LLM correction if enabled
+        raw_transcript = result.transcript
+        corrected_transcript = raw_transcript
+        correction_applied = False
+        
+        if settings.stt_correction_enabled and raw_transcript:
+            try:
+                from app.voice.stt.corrector import TranscriptCorrector
+                
+                corrector = TranscriptCorrector(provider=settings.stt_correction_provider)
+                
+                if corrector.is_available():
+                    corrected_transcript, correction_applied = await corrector.correct(
+                        transcript=raw_transcript,
+                        page_title=page_title,
+                        page_keywords=keywords_list,
+                    )
+                else:
+                    log.warning("Transcript corrector not available, skipping correction")
+            except Exception as exc:
+                log.warning("Transcript correction failed: %s", exc)
+                # Keep original transcript on correction failure
+        
     except ValueError as ve:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
     except (TimeoutError, httpx.TimeoutException):
@@ -378,7 +420,11 @@ async def speech_to_text(
         )
 
     return STTResponse(
-        transcript=result.transcript,
+        transcript=corrected_transcript,
         language=result.language,
         duration_s=result.duration_s,
+        raw_text=raw_transcript if correction_applied else None,
+        correction_applied=correction_applied,
+        provider=provider_name,
+        confidence=result.confidence if hasattr(result, "confidence") else None,
     )
