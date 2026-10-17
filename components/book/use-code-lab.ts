@@ -1,10 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useReducer } from 'react'
+import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { useReducedMotion } from '@/lib/motion'
 import { useBookClient, useBookEvent } from '@/lib/book-client/react'
 import type { ServerEventPayloads } from '@/lib/contracts/book-events'
-import { physicalLineFor, type DemoRunResult, type DemoVariable } from '@/lib/runner'
+import { physicalLineFor, getRunnerBackend, getRunner, type DemoRunResult, type DemoVariable } from '@/lib/runner'
 import { storageKeys, useLocalStorage } from '@/lib/storage'
 import type { CodeExample, LessonPageId } from '@/types/book'
 
@@ -164,6 +164,24 @@ function toDemoResult({ stdout, stderr, status, durationMs, trace }: RunResultPa
 export function useCodeLab(pageId: LessonPageId, example: CodeExample, courseId: string) {
   const reducedMotion = useReducedMotion()
   const client = useBookClient()
+  const runnerBackend = getRunnerBackend()
+  const runnerRef = useRef<ReturnType<typeof getRunner> | null>(null)
+  
+  // Initialize runner for Pyodide mode
+  useEffect(() => {
+    if (runnerBackend === 'pyodide') {
+      if (!runnerRef.current) {
+        runnerRef.current = getRunner()
+      }
+      // Lazy init when code lab mounts
+      runnerRef.current.init().catch(console.error)
+      
+      return () => {
+        // Don't destroy - keep singleton alive for session
+      }
+    }
+  }, [runnerBackend])
+  
   const [state, dispatch] = useReducer(reducer, null, () => ({
     ...idleRun,
     code: example.source,
@@ -180,9 +198,44 @@ export function useCodeLab(pageId: LessonPageId, example: CodeExample, courseId:
   })
 
   const requestRun = useCallback(
-    (code: string, extra: { stdin?: string[]; useSampleInput?: boolean }) =>
-      client.runCode({ courseId, pageId, code, language: 'python', ...extra }),
-    [client, courseId, pageId],
+    async (code: string, extra: { stdin?: string[]; useSampleInput?: boolean }): Promise<string> => {
+      if (runnerBackend === 'pyodide' && runnerRef.current) {
+        // Direct Pyodide execution
+        const codeId = `pyodide-${Date.now()}-${Math.random().toString(36).slice(2)}`
+        
+        // Run in background and emit result when done
+        runnerRef.current.run(code, extra.stdin || []).then((result: DemoRunResult) => {
+          // Convert to wire format
+          dispatch({
+            type: 'result',
+            codeId,
+            result,
+            inputs: extra.stdin || [],
+          })
+        }).catch((error: Error) => {
+          // Error handling
+          dispatch({
+            type: 'result',
+            codeId,
+            result: {
+              status: 'error',
+              exampleId: null,
+              steps: [],
+              stdout: '',
+              stderr: `Runner error: ${error.message}`,
+              illustrativeDurationMs: 0,
+            },
+            inputs: extra.stdin || [],
+          })
+        })
+        
+        return codeId
+      } else {
+        // Use book client (mock or websocket)
+        return client.runCode({ courseId, pageId, code, language: 'python', ...extra })
+      }
+    },
+    [client, courseId, pageId, runnerBackend],
   )
   const [snapshots, setSnapshots] = useLocalStorage<SnapshotMap>(storageKeys.runnerSnapshots, {})
 
@@ -268,8 +321,9 @@ export function useCodeLab(pageId: LessonPageId, example: CodeExample, courseId:
     run: useCallback(
       (narrated = false) => {
         if (streaming) return
-        const codeId = requestRun(state.code, narrated ? { useSampleInput: true } : {})
-        dispatch({ type: 'run', mode: 'run', narrated, codeId })
+        requestRun(state.code, narrated ? { useSampleInput: true } : {}).then((codeId) => {
+          dispatch({ type: 'run', mode: 'run', narrated, codeId })
+        })
       },
       [requestRun, state.code, streaming],
     ),
@@ -279,17 +333,25 @@ export function useCodeLab(pageId: LessonPageId, example: CodeExample, courseId:
         return
       }
       if (streaming) return
-      dispatch({ type: 'run', mode: 'step', codeId: requestRun(state.code, {}) })
+      requestRun(state.code, {}).then((codeId) => {
+        dispatch({ type: 'run', mode: 'step', codeId })
+      })
     }, [state.mode, state.status, state.code, streaming, requestRun]),
     submitInput: useCallback(
       (value: string) => {
         if (state.status !== 'awaiting-input') return
-        const codeId = requestRun(state.code, { stdin: [...state.inputs, value] })
-        dispatch({ type: 'submitInput', value, codeId })
+        requestRun(state.code, { stdin: [...state.inputs, value] }).then((codeId) => {
+          dispatch({ type: 'submitInput', value, codeId })
+        })
       },
       [requestRun, state.code, state.inputs, state.status],
     ),
-    stop: useCallback(() => dispatch({ type: 'stop' }), []),
+    stop: useCallback(() => {
+      if (runnerBackend === 'pyodide' && runnerRef.current) {
+        runnerRef.current.stop()
+      }
+      dispatch({ type: 'stop' })
+    }, [runnerBackend]),
     reset: useCallback(() => dispatch({ type: 'reset', code: example.source }), [example.source]),
     restore: useCallback((code: string) => dispatch({ type: 'reset', code }), []),
     setTab: useCallback((tab: OutputTab) => dispatch({ type: 'setTab', tab }), []),
