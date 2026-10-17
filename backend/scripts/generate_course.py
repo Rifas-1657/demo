@@ -160,6 +160,8 @@ async def cmd_generate(args: argparse.Namespace) -> int:
     
     # Generate pages
     results = []
+    generated_pages = []  # For review file writing
+    
     for page_num in pages_to_generate:
         print(f"[Chapter {args.chapter}, Page {page_num}]")
         
@@ -206,6 +208,8 @@ async def cmd_generate(args: argparse.Namespace) -> int:
             print(f"    - Word count: {page.word_count}")
             print(f"    - Segments: {len(page.segments)}")
             
+            generated_pages.append(page)  # Collect for review writing
+            
             results.append({
                 "page": page_num,
                 "status": "success",
@@ -222,6 +226,17 @@ async def cmd_generate(args: argparse.Namespace) -> int:
             results.append({"page": page_num, "status": "error", "error": str(exc)})
         
         print()
+    
+    # Write review files for successfully generated pages
+    if generated_pages:
+        from app.page_gen.review_writer import batch_write_reviews
+        
+        print()
+        print("Writing review files...")
+        review_files = batch_write_reviews(generated_pages, output_dir="review")
+        print(f"✓ Wrote {len(review_files)} review files to review/{args.chapter}/")
+        for rf in review_files:
+            print(f"  - {rf}")
     
     # Summary
     print("=" * 60)
