@@ -151,6 +151,22 @@ class Settings(BaseSettings):
     faster_whisper_model: str = "large-v3-turbo"
     bookey_stt_model: str = "whisper-large-v3-turbo"
     groq_whisper_model: str = "whisper-large-v3-turbo"
+    
+    # STT: Language Handling
+    stt_language_mode: str = "auto"  # auto, forced_ta, forced_en, two_pass
+    stt_forced_language: str = "ta"  # used when mode is forced_ta or forced_en
+    
+    # STT: Advanced Options
+    stt_vad_filter: bool = True
+    stt_beam_size: int = 5
+    stt_temperature: float = 0.0  # 0.0 = greedy, >0 = sampling with fallback
+    stt_no_speech_threshold: float = 0.6
+    stt_compression_ratio_threshold: float = 2.4
+    stt_log_prob_threshold: float = -1.0
+    
+    # STT: Post-correction
+    stt_correction_enabled: bool = True
+    stt_correction_provider: str = "gemini"  # llm provider for correction
 
     # TTS: Bodhan Indic-Speak
     bodhan_api_key: str = ""
@@ -165,8 +181,22 @@ class Settings(BaseSettings):
     bookey_tts_style: str = "clear, warm, patient teaching style"
     edge_tts_voice: str = "ta-IN-ValluvarNeural"
 
+    # TTS: ElevenLabs
+    elevenlabs_api_keys: str = ""  # comma-separated ordered keys
+    elevenlabs_voice_id: str = ""
+    elevenlabs_model_id: str = "eleven_turbo_v2_5"
+    elevenlabs_output_format: str = "mp3_44100_128"
+    elevenlabs_credits_per_key: int = 10000
+    elevenlabs_credits_per_char: float = 1.0
+    elevenlabs_stability: float = 0.5
+    elevenlabs_similarity_boost: float = 0.75
+    elevenlabs_style: float = 0.0
+    elevenlabs_use_speaker_boost: bool = True
+    elevenlabs_max_credits_per_run: int = 50000
+    elevenlabs_daily_cap: int = 100000
+
     # Audio Cache
-    audio_cache_dir: str = "backend/.cache/bookey-voice"
+    audio_cache_dir: str = "./.cache/bookey-voice"
     voice_enabled: bool = True
     tts_first_sentence_only: bool = True  # start playback after first sentence
 

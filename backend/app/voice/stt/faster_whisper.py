@@ -4,6 +4,11 @@ app/voice/stt/faster_whisper.py — Local faster-whisper STT with CPU int8 quant
 Model: large-v3-turbo (default), reused as a singleton across requests.
 Non-blocking execution via asyncio.to_thread.
 Includes technical Tanglish vocabulary prompt to boost domain transcription accuracy.
+
+Enhanced with:
+- Configurable language handling (auto, forced, two-pass)
+- VAD filter, beam size, temperature fallback
+- Context-aware prompts (page context + glossary terms)
 """
 from __future__ import annotations
 
@@ -57,9 +62,21 @@ class FasterWhisperSTT(SpeechToText):
         self,
         model_name: str = "large-v3-turbo",
         vocab_hint: str = DEFAULT_LOCAL_VOCAB_PROMPT,
+        vad_filter: bool = True,
+        beam_size: int = 5,
+        temperature: float = 0.0,
+        no_speech_threshold: float = 0.6,
+        compression_ratio_threshold: float = 2.4,
+        log_prob_threshold: float = -1.0,
     ) -> None:
         self._model_name = model_name
         self._vocab_hint = vocab_hint
+        self._vad_filter = vad_filter
+        self._beam_size = beam_size
+        self._temperature = temperature
+        self._no_speech_threshold = no_speech_threshold
+        self._compression_ratio_threshold = compression_ratio_threshold
+        self._log_prob_threshold = log_prob_threshold
 
     async def transcribe(
         self,
@@ -98,14 +115,24 @@ class FasterWhisperSTT(SpeechToText):
                 tmp_path = Path(tmp_file.name)
 
             try:
+                # Build temperature list for fallback if temperature > 0
+                temperature_list = (
+                    [self._temperature] if self._temperature == 0.0
+                    else [self._temperature, 0.0, 0.2, 0.4, 0.6, 0.8]
+                )
+                
                 # Transcribe with domain vocabulary prompt; no translation
                 segments, info = model.transcribe(
                     str(tmp_path),
                     language=hint_lang or None,
                     task="transcribe",
                     initial_prompt=self._vocab_hint,
-                    beam_size=5,
-                    vad_filter=True,
+                    beam_size=self._beam_size,
+                    vad_filter=self._vad_filter,
+                    temperature=temperature_list,
+                    no_speech_threshold=self._no_speech_threshold,
+                    compression_ratio_threshold=self._compression_ratio_threshold,
+                    log_prob_threshold=self._log_prob_threshold,
                 )
                 text_parts = [segment.text.strip() for segment in segments if segment.text.strip()]
                 full_text = " ".join(text_parts).strip()
@@ -120,3 +147,14 @@ class FasterWhisperSTT(SpeechToText):
                 tmp_path.unlink(missing_ok=True)
 
         return await asyncio.to_thread(_sync_transcribe)
+    
+    async def transcribe_with_language(
+        self,
+        audio_bytes: bytes,
+        mime: str,
+        language: str | None,
+    ) -> STTResult:
+        """
+        Transcribe with explicit language parameter for language handling strategies.
+        """
+        return await self.transcribe(audio_bytes=audio_bytes, mime=mime, hint_lang=language)

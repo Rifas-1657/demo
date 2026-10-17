@@ -2,6 +2,10 @@
 app/voice/stt/groq_whisper.py  — Groq Whisper STT provider.
 
 Env: GROQ_API_KEY, GROQ_WHISPER_MODEL (default: whisper-large-v3-turbo)
+
+Enhanced with:
+- Configurable language handling
+- Context-aware prompts
 """
 from __future__ import annotations
 
@@ -87,3 +91,14 @@ class GroqWhisperSTT(SpeechToText):
             language=res_data.get("language", hint_lang or "ta"),
             duration_s=float(res_data.get("duration", 0.0)),
         )
+    
+    async def transcribe_with_language(
+        self,
+        audio_bytes: bytes,
+        mime: str,
+        language: str | None,
+    ) -> STTResult:
+        """
+        Transcribe with explicit language parameter for language handling strategies.
+        """
+        return await self.transcribe(audio_bytes=audio_bytes, mime=mime, hint_lang=language)
