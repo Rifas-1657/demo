@@ -8,6 +8,8 @@ Endpoints:
   POST /api/admin/pages/generate-chapter — generate a full chapter (background + SSE progress)
   GET  /api/admin/pages                 — list cached pages (filterable by course/chapter)
   GET  /api/admin/pages/{course}/{ch}/{page} — get specific page
+  POST /api/admin/pages/{course}/{ch}/{page}/approve — approve draft page
+  POST /api/admin/pages/{course}/{ch}/{page}/reject — reject page with reason
   POST /api/admin/pages/{course}/{ch}/{page}/rollback — rollback to previous version
   GET  /api/admin/pages/usage           — LLM usage counters per day/provider
 """
@@ -27,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import require_admin
 from app.db.database import get_db
 from app.db.models import GeneratedPage as GPModel, LLMUsage, PageGenLog, User
+from app.page_gen.approval import ApprovalError, approve_page, reject_page
 from app.page_gen.pipeline import GenerationError, generate_page
 from app.page_gen.schema import GeneratedPage
 
@@ -78,6 +81,10 @@ class UsageRow(BaseModel):
     model: str
     tokens_in: int
     tokens_out: int
+
+
+class RejectPageRequest(BaseModel):
+    reason: str
 
 
 # ---------------------------------------------------------------------------
@@ -242,3 +249,72 @@ async def llm_usage(
                  tokens_in=r.tokens_in, tokens_out=r.tokens_out)
         for r in result
     ]
+
+
+@router.post("/{course_id}/{chapter}/{page_num}/approve")
+async def approve_page_endpoint(
+    course_id: str,
+    chapter: int,
+    page_num: int,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Approve a draft page, making it publishable.
+    Only draft or rejected pages can be approved.
+    """
+    try:
+        page = await approve_page(
+            db=db,
+            course_id=course_id,
+            chapter=chapter,
+            page=page_num,
+            approved_by_user_id=str(current_user.id),
+        )
+        return {
+            "status": "approved",
+            "page": page_num,
+            "approved_by": page.approved_by,
+            "approved_at": page.approved_at.isoformat() if page.approved_at else None,
+        }
+    except ApprovalError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/{course_id}/{chapter}/{page_num}/reject")
+async def reject_page_endpoint(
+    course_id: str,
+    chapter: int,
+    page_num: int,
+    req: RejectPageRequest,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Reject a draft or approved page with a reason.
+    The reason will be fed back to the next generation attempt.
+    """
+    if not req.reason or len(req.reason.strip()) < 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Rejection reason must be at least 10 characters"
+        )
+    
+    try:
+        page = await reject_page(
+            db=db,
+            course_id=course_id,
+            chapter=chapter,
+            page=page_num,
+            reason=req.reason,
+            rejected_by_user_id=str(current_user.id),
+        )
+        return {
+            "status": "rejected",
+            "page": page_num,
+            "rejection_reason": page.rejection_reason,
+            "rejected_by": page.rejected_by,
+            "rejected_at": page.rejected_at.isoformat() if page.rejected_at else None,
+        }
+    except ApprovalError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
