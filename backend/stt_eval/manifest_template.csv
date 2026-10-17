@@ -1,0 +1,41 @@
+id,audio_file,reference_text,language,expected_terms
+t01,audio/t01.wav,Python-ல variable-ஐ எப்படி declare பண்றது,ta,python variable declare
+t02,audio/t02.wav,list-ல இருக்கற எல்லா element-களையும் எப்படி print பண்றது,ta,list element print
+t03,audio/t03.wav,function-க்கு parameter pass பண்றது எப்படி,ta,function parameter pass
+t04,audio/t04.wav,dictionary-ல key மற்றும் value-ஐ எப்படி add பண்றது,ta,dictionary key value add
+t05,audio/t05.wav,for loop-ஐ எப்படி use பண்றது,ta,for loop use
+t06,audio/t06.wav,if else condition எப்படி எழுதுறது,ta,if else condition
+t07,audio/t07.wav,string-ஐ எப்படி concatenate பண்றது,ta,string concatenate
+t08,audio/t08.wav,class எப்படி define பண்றது,ta,class define
+t09,audio/t09.wav,method-ஐ class-ல எப்படி add பண்றது,ta,method class add
+t10,audio/t10.wav,module-ஐ எப்படி import பண்றது,ta,module import
+t11,audio/t11.wav,exception handling-க்கு try except எப்படி use பண்றது,ta,exception handling try except use
+t12,audio/t12.wav,list comprehension என்னான்னு explain பண்ணுங்க,ta,list comprehension explain
+t13,audio/t13.wav,lambda function என்ன மற்றும் எப்படி use பண்றது,ta,lambda function use
+t14,audio/t14.wav,file-ஐ எப்படி open பண்ணி read பண்றது,ta,file open read
+t15,audio/t15.wav,JSON data-ஐ எப்படி parse பண்றது,ta,json data parse
+t16,audio/t16.wav,API call-ஐ Python-ல எப்படி செய்வது,ta,api call python
+t17,audio/t17.wav,virtual environment எப்படி create பண்றது,ta,virtual environment create
+t18,audio/t18.wav,pip-ஐ use பண்ணி package எப்படி install பண்றது,ta,pip use package install
+t19,audio/t19.wav,numpy array என்னான்னு சொல்லுங்க,ta,numpy array
+t20,audio/t20.wav,pandas DataFrame-ல data எப்படி filter பண்றது,ta,pandas dataframe data filter
+t21,audio/t21.wav,React-ல component எப்படி create பண்றது,ta,react component create
+t22,audio/t22.wav,useState hook எப்படி வேலை செய்யுது,ta,usestate hook
+t23,audio/t23.wav,props-ஐ parent-லிருந்து child component-க்கு எப்படி pass பண்றது,ta,props parent child component pass
+t24,audio/t24.wav,useEffect hook-ல dependency array என்ன,ta,useeffect hook dependency array
+t25,audio/t25.wav,async function-ல await எப்படி use பண்றது,ta,async function await use
+t26,audio/t26.wav,FastAPI-ல route எப்படி define பண்றது,ta,fastapi route define
+t27,audio/t27.wav,REST API-ல GET request எப்படி handle பண்றது,ta,rest api get request handle
+t28,audio/t28.wav,database-க்கு SQL query எப்படி execute பண்றது,ta,database sql query execute
+t29,audio/t29.wav,git-ல branch எப்படி create பண்ணி switch பண்றது,ta,git branch create switch
+t30,audio/t30.wav,GitHub-ல repository-ஐ எப்படி clone பண்றது,ta,github repository clone
+t31,audio/t31.wav,LangGraph-ல StateGraph எப்படி define பண்றது,ta,langgraph stategraph define
+t32,audio/t32.wav,RAG system-க்கு embeddings எப்படி generate பண்றது,ta,rag system embeddings generate
+t33,audio/t33.wav,vector database-ல data எப்படி store பண்றது,ta,vector database data store
+t34,audio/t34.wav,LLM-க்கு prompt எப்படி pass பண்றது,ta,llm prompt pass
+t35,audio/t35.wav,machine learning model-ஐ எப்படி train பண்றது,ta,machine learning model train
+t36,audio/t36.wav,TypeError என்ன error மற்றும் எப்படி fix பண்றது,ta,typeerror error fix
+t37,audio/t37.wav,list-ல append மற்றும் extend-ல என்ன difference,ta,list append extend difference
+t38,audio/t38.wav,tuple மற்றும் list-க்குள்ள என்ன difference,ta,tuple list difference
+t39,audio/t39.wav,global மற்றும் local variable என்ன,ta,global local variable
+t40,audio/t40.wav,recursion என்னான்னு example-ஓட explain பண்ணுங்க,ta,recursion example explain
