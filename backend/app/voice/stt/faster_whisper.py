@@ -68,6 +68,7 @@ class FasterWhisperSTT(SpeechToText):
         no_speech_threshold: float = 0.6,
         compression_ratio_threshold: float = 2.4,
         log_prob_threshold: float = -1.0,
+        use_context_prompt: bool = True,
     ) -> None:
         self._model_name = model_name
         self._vocab_hint = vocab_hint
@@ -77,16 +78,37 @@ class FasterWhisperSTT(SpeechToText):
         self._no_speech_threshold = no_speech_threshold
         self._compression_ratio_threshold = compression_ratio_threshold
         self._log_prob_threshold = log_prob_threshold
+        self._use_context_prompt = use_context_prompt
+        
+        # Initialize prompt builder if context-aware prompts enabled
+        if self._use_context_prompt:
+            try:
+                from app.voice.stt.prompt_builder import PromptBuilder
+                self._prompt_builder = PromptBuilder()
+            except Exception as exc:
+                log.warning("Failed to initialize prompt builder: %s", exc)
+                self._prompt_builder = None
+        else:
+            self._prompt_builder = None
 
     async def transcribe(
         self,
         audio_bytes: bytes,
         mime: str = "audio/webm",
         hint_lang: Optional[str] = None,
+        page_title: Optional[str] = None,
+        page_keywords: Optional[list[str]] = None,
     ) -> STTResult:
         """
         Transcribe audio using local faster-whisper in a separate thread.
         Never translates into English; preserves verbatim Tanglish transcript.
+        
+        Args:
+            audio_bytes: Audio data
+            mime: MIME type
+            hint_lang: Optional language hint
+            page_title: Current page/lesson title for context-aware prompts
+            page_keywords: Key terms from current page for context-aware prompts
         """
         if not audio_bytes:
             raise ValueError("Uploaded audio file is empty")
@@ -104,6 +126,19 @@ class FasterWhisperSTT(SpeechToText):
             suffix = ".mp4"
         elif "mp3" in mime_lower:
             suffix = ".mp3"
+        
+        # Build context-aware prompt if enabled
+        initial_prompt = self._vocab_hint
+        if self._prompt_builder and (page_title or page_keywords):
+            try:
+                initial_prompt = self._prompt_builder.build_prompt(
+                    page_title=page_title,
+                    page_keywords=page_keywords,
+                )
+                log.debug("Using context-aware prompt: %s", initial_prompt[:100])
+            except Exception as exc:
+                log.warning("Failed to build context prompt, using default: %s", exc)
+                initial_prompt = self._vocab_hint
 
         def _sync_transcribe() -> STTResult:
             model = get_whisper_model(self._model_name)
@@ -126,7 +161,7 @@ class FasterWhisperSTT(SpeechToText):
                     str(tmp_path),
                     language=hint_lang or None,
                     task="transcribe",
-                    initial_prompt=self._vocab_hint,
+                    initial_prompt=initial_prompt,
                     beam_size=self._beam_size,
                     vad_filter=self._vad_filter,
                     temperature=temperature_list,
