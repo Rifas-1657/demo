@@ -132,6 +132,10 @@ class Settings(BaseSettings):
     page_max_words: int = 300
     page_max_tokens: int = 8192
     page_gen_max_repair_attempts: int = 2
+    
+    # --- LLM Usage Limits ---
+    llm_daily_token_limit: int = 1_000_000  # Total tokens per day (0 = no limit)
+    llm_page_generation_cap: int = 50  # Max pages to generate in one run
 
 
     # =========================================================
