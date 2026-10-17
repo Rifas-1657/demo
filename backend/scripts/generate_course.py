@@ -74,21 +74,276 @@ async def cmd_outline(args: argparse.Namespace) -> int:
 
 async def cmd_generate(args: argparse.Namespace) -> int:
     """
-    Generate page content (placeholder - will be implemented in task #7)
+    Generate page content with full verification pipeline.
+    
+    Pipeline:
+      1. Parse page range
+      2. Check usage limits (dry-run mode estimates tokens)
+      3. For each page:
+         - Check if can regenerate (skip approved unless --force)
+         - Get rejection reason feedback if exists
+         - Retrieve KB context
+         - Generate with LLM (+ repair loop)
+         - Verify: schema, code execution, cue targets, narration length
+         - Store as draft
+         - Record usage
+      4. Write review files
+      5. Report summary
     """
-    print("Page generation not yet implemented (task #7)")
-    print(f"Would generate: Chapter {args.chapter}, pages {args.pages}")
-    print(f"Dry run: {args.dry_run}")
-    print(f"Force: {args.force}")
-    print(f"Limit: {args.limit}")
-    return 0
+    from app.config import get_settings
+    from app.db.database import AsyncSessionLocal
+    from app.page_gen.approval import can_regenerate, get_rejection_reason
+    from app.page_gen.pipeline import generate_page, GenerationError
+    from app.page_gen.usage_ledger import (
+        check_daily_limit,
+        enforce_daily_limit,
+        estimate_page_generation_tokens,
+        record_usage,
+    )
+    
+    settings = get_settings()
+    
+    # Parse page range
+    pages_to_generate = _parse_page_range(args.pages, args.chapter)
+    
+    # Apply limit
+    if args.limit and len(pages_to_generate) > args.limit:
+        pages_to_generate = pages_to_generate[:args.limit]
+    
+    # Apply per-run cap from settings
+    if len(pages_to_generate) > settings.llm_page_generation_cap:
+        print(f"⚠ Page count {len(pages_to_generate)} exceeds cap {settings.llm_page_generation_cap}")
+        pages_to_generate = pages_to_generate[:settings.llm_page_generation_cap]
+    
+    print(f"Planning to generate {len(pages_to_generate)} pages from Chapter {args.chapter}")
+    print(f"Pages: {pages_to_generate}")
+    print()
+    
+    # Estimate tokens
+    estimated_tokens = await estimate_page_generation_tokens(len(pages_to_generate))
+    print(f"Estimated token usage: {estimated_tokens:,} tokens (~{estimated_tokens // 1000}K)")
+    
+    # Check daily limit
+    async with AsyncSessionLocal() as db:
+        within_limit, current, limit = await check_daily_limit(db, estimated_tokens)
+        
+        if limit > 0:
+            print(f"Daily usage: {current:,} / {limit:,} tokens")
+            print(f"After generation: ~{current + estimated_tokens:,} tokens")
+            
+            if not within_limit:
+                print(f"✗ ERROR: Would exceed daily limit!")
+                return 1
+        else:
+            print("Daily limit: unlimited")
+    
+    # Dry run stops here
+    if args.dry_run:
+        print()
+        print("[DRY RUN] No pages generated, no LLM calls made.")
+        print(f"Estimated LLM calls: ~{len(pages_to_generate) * 2} (generation + possible repairs)")
+        return 0
+    
+    # Confirm unless --yes
+    if not args.yes:
+        print()
+        response = input(f"Generate {len(pages_to_generate)} pages? [y/N]: ")
+        if response.lower() not in ('y', 'yes'):
+            print("Cancelled.")
+            return 0
+    
+    print()
+    print("=" * 60)
+    print("Starting generation...")
+    print("=" * 60)
+    print()
+    
+    # Generate pages
+    results = []
+    for page_num in pages_to_generate:
+        print(f"[Chapter {args.chapter}, Page {page_num}]")
+        
+        async with AsyncSessionLocal() as db:
+            # Check if can regenerate
+            can_regen, reason = await can_regenerate(
+                db=db,
+                course_id="python",
+                chapter=args.chapter,
+                page=page_num,
+                force=args.force,
+            )
+            
+            if not can_regen:
+                print(f"  ⊗ Skipped: {reason}")
+                results.append({"page": page_num, "status": "skipped", "reason": reason})
+                continue
+            
+            # Get rejection feedback
+            rejection_feedback = await get_rejection_reason(
+                db=db,
+                course_id="python",
+                chapter=args.chapter,
+                page=page_num,
+            )
+            
+            if rejection_feedback:
+                print(f"  ℹ Previous rejection: {rejection_feedback[:80]}...")
+        
+        # Generate
+        try:
+            print(f"  ⋯ Generating...")
+            page = await generate_page(
+                course_id="python",
+                chapter=args.chapter,
+                page=page_num,
+                chapter_topic=f"Chapter {args.chapter}",
+                page_topic=f"Page {page_num}",
+                regenerate=True,
+            )
+            
+            print(f"  ✓ Generated: {page.title}")
+            print(f"    - Verified: {page.verified}")
+            print(f"    - Word count: {page.word_count}")
+            print(f"    - Segments: {len(page.segments)}")
+            
+            results.append({
+                "page": page_num,
+                "status": "success",
+                "title": page.title,
+                "verified": page.verified,
+            })
+            
+        except GenerationError as exc:
+            print(f"  ✗ Generation failed: {exc}")
+            results.append({"page": page_num, "status": "failed", "error": str(exc)})
+        except Exception as exc:
+            print(f"  ✗ Unexpected error: {exc}")
+            log.error("Generation error for ch%d p%d", args.chapter, page_num, exc_info=True)
+            results.append({"page": page_num, "status": "error", "error": str(exc)})
+        
+        print()
+    
+    # Summary
+    print("=" * 60)
+    print("Generation Complete")
+    print("=" * 60)
+    print()
+    
+    success = sum(1 for r in results if r["status"] == "success")
+    failed = sum(1 for r in results if r["status"] == "failed")
+    skipped = sum(1 for r in results if r["status"] == "skipped")
+    errors = sum(1 for r in results if r["status"] == "error")
+    
+    print(f"Success: {success}/{len(pages_to_generate)}")
+    print(f"Failed: {failed}")
+    print(f"Skipped: {skipped}")
+    print(f"Errors: {errors}")
+    print()
+    
+    if success > 0:
+        print("Next steps:")
+        print(f"  1. Review drafts in review/{args.chapter}/*.md")
+        print(f"  2. Approve: python backend/scripts/generate_course.py approve --chapter {args.chapter} --page <N>")
+        print(f"  3. Check status: python backend/scripts/generate_course.py status --chapter {args.chapter}")
+    
+    return 0 if (failed + errors) == 0 else 1
+
+
+def _parse_page_range(pages_arg: str, chapter: int) -> list[int]:
+    """
+    Parse page range string into list of page numbers.
+    
+    Examples:
+      "all" -> [1, 2, ..., N] based on chapter metadata
+      "1-3" -> [1, 2, 3]
+      "1,3,5" -> [1, 3, 5]
+      "1-3,7,9-11" -> [1, 2, 3, 7, 9, 10, 11]
+    """
+    from app.page_gen.outliner import CHAPTER_METADATA
+    
+    if pages_arg.lower() == "all":
+        if chapter in CHAPTER_METADATA:
+            total = CHAPTER_METADATA[chapter]["page_count"]
+            return list(range(1, total + 1))
+        else:
+            raise ValueError(f"Chapter {chapter} not in metadata")
+    
+    pages = []
+    parts = pages_arg.split(",")
+    
+    for part in parts:
+        part = part.strip()
+        if "-" in part:
+            start, end = part.split("-", 1)
+            pages.extend(range(int(start), int(end) + 1))
+        else:
+            pages.append(int(part))
+    
+    return sorted(set(pages))  # Remove duplicates and sort
 
 
 async def cmd_status(args: argparse.Namespace) -> int:
     """
-    Report page generation status (placeholder - will be implemented in task #10)
+    Report page generation status across all chapters or filtered by chapter.
     """
-    print("Status reporting not yet implemented (task #10)")
+    from app.db.database import AsyncSessionLocal
+    from app.page_gen.approval import get_page_status_counts
+    from app.page_gen.outliner import CHAPTER_METADATA
+    
+    print("Python Course Generation Status")
+    print("=" * 60)
+    print()
+    
+    async with AsyncSessionLocal() as db:
+        if args.chapter:
+            # Single chapter status
+            chapters = [args.chapter]
+        else:
+            # All chapters
+            chapters = sorted(CHAPTER_METADATA.keys())
+        
+        grand_total = {"draft": 0, "approved": 0, "rejected": 0}
+        
+        for ch in chapters:
+            if ch not in CHAPTER_METADATA:
+                continue
+            
+            meta = CHAPTER_METADATA[ch]
+            counts = await get_page_status_counts(db=db, course_id="python", chapter=ch)
+            
+            total_generated = sum(counts.values())
+            expected = meta["page_count"]
+            
+            draft = counts.get("draft", 0)
+            approved = counts.get("approved", 0)
+            rejected = counts.get("rejected", 0)
+            
+            grand_total["draft"] += draft
+            grand_total["approved"] += approved
+            grand_total["rejected"] += rejected
+            
+            print(f"Chapter {ch}: {meta['title']}")
+            print(f"  Expected pages: {expected}")
+            print(f"  Generated: {total_generated}")
+            print(f"  - Draft: {draft}")
+            print(f"  - Approved: {approved}")
+            print(f"  - Rejected: {rejected}")
+            
+            if total_generated < expected:
+                remaining = expected - total_generated
+                print(f"  ⚠ {remaining} pages not yet generated")
+            
+            print()
+        
+        if not args.chapter:
+            # Grand totals
+            print("-" * 60)
+            print("Total across all chapters:")
+            print(f"  Draft: {grand_total['draft']}")
+            print(f"  Approved: {grand_total['approved']}")
+            print(f"  Rejected: {grand_total['rejected']}")
+            print(f"  Total: {sum(grand_total.values())}")
+    
     return 0
 
 
