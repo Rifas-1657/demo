@@ -149,6 +149,7 @@ class Settings(BaseSettings):
 
     # STT (Local Faster-Whisper & Groq Whisper)
     faster_whisper_model: str = "large-v3-turbo"
+    faster_whisper_compute_type: str = "int8"  # int8, int8_float16, float16, float32
     bookey_stt_model: str = "whisper-large-v3-turbo"
     groq_whisper_model: str = "whisper-large-v3-turbo"
     

@@ -32,27 +32,83 @@ _MODEL_CACHE: dict[str, object] = {}
 _MODEL_LOCK = threading.Lock()
 
 
-def get_whisper_model(model_name: str = "large-v3-turbo"):
-    """Thread-safe singleton getter for Faster-Whisper model."""
-    if model_name not in _MODEL_CACHE:
+def get_whisper_model(model_name: str = "large-v3-turbo", compute_type: str = "int8"):
+    """
+    Thread-safe singleton getter for Faster-Whisper model with automatic fallback.
+    
+    Args:
+        model_name: Model name (large-v3, large-v3-turbo, etc.)
+        compute_type: Quantization type (int8, int8_float16, float16, float32)
+    
+    Returns:
+        WhisperModel instance or None on failure
+    
+    Fallback behavior:
+    - If model doesn't fit in memory, tries lighter compute types
+    - If all fail, returns None
+    """
+    cache_key = f"{model_name}_{compute_type}"
+    
+    if cache_key not in _MODEL_CACHE:
         with _MODEL_LOCK:
-            if model_name not in _MODEL_CACHE:
+            if cache_key not in _MODEL_CACHE:
                 try:
                     from faster_whisper import WhisperModel
-                    log.info("Loading local faster-whisper model '%s' (device=cpu, compute_type=int8)...", model_name)
-                    _MODEL_CACHE[model_name] = WhisperModel(
+                    log.info(
+                        "Loading local faster-whisper model '%s' (device=cpu, compute_type=%s)...",
+                        model_name,
+                        compute_type,
+                    )
+                    _MODEL_CACHE[cache_key] = WhisperModel(
                         model_name,
                         device="cpu",
-                        compute_type="int8",
+                        compute_type=compute_type,
                     )
-                    log.info("Successfully loaded faster-whisper model '%s'", model_name)
+                    log.info("Successfully loaded faster-whisper model '%s' with %s", model_name, compute_type)
                 except ImportError:
                     log.error("faster_whisper package is not installed")
-                    _MODEL_CACHE[model_name] = None
+                    _MODEL_CACHE[cache_key] = None
                 except Exception as exc:
-                    log.error("Failed to load faster-whisper model '%s': %s", model_name, exc)
-                    raise
-    return _MODEL_CACHE[model_name]
+                    log.warning(
+                        "Failed to load faster-whisper model '%s' with %s: %s",
+                        model_name,
+                        compute_type,
+                        exc,
+                    )
+                    
+                    # Try fallback to lighter compute type
+                    fallback_types = {
+                        "float32": "float16",
+                        "float16": "int8_float16",
+                        "int8_float16": "int8",
+                    }
+                    
+                    if compute_type in fallback_types:
+                        fallback_type = fallback_types[compute_type]
+                        log.info("Attempting fallback to %s...", fallback_type)
+                        try:
+                            _MODEL_CACHE[cache_key] = WhisperModel(
+                                model_name,
+                                device="cpu",
+                                compute_type=fallback_type,
+                            )
+                            log.info(
+                                "Successfully loaded faster-whisper model '%s' with fallback %s",
+                                model_name,
+                                fallback_type,
+                            )
+                        except Exception as fallback_exc:
+                            log.error(
+                                "Fallback also failed for '%s' with %s: %s",
+                                model_name,
+                                fallback_type,
+                                fallback_exc,
+                            )
+                            _MODEL_CACHE[cache_key] = None
+                    else:
+                        _MODEL_CACHE[cache_key] = None
+    
+    return _MODEL_CACHE[cache_key]
 
 
 class FasterWhisperSTT(SpeechToText):
@@ -61,6 +117,7 @@ class FasterWhisperSTT(SpeechToText):
     def __init__(
         self,
         model_name: str = "large-v3-turbo",
+        compute_type: str = "int8",
         vocab_hint: str = DEFAULT_LOCAL_VOCAB_PROMPT,
         vad_filter: bool = True,
         beam_size: int = 5,
@@ -71,6 +128,7 @@ class FasterWhisperSTT(SpeechToText):
         use_context_prompt: bool = True,
     ) -> None:
         self._model_name = model_name
+        self._compute_type = compute_type
         self._vocab_hint = vocab_hint
         self._vad_filter = vad_filter
         self._beam_size = beam_size
@@ -141,7 +199,7 @@ class FasterWhisperSTT(SpeechToText):
                 initial_prompt = self._vocab_hint
 
         def _sync_transcribe() -> STTResult:
-            model = get_whisper_model(self._model_name)
+            model = get_whisper_model(self._model_name, self._compute_type)
             if model is None:
                 raise RuntimeError("Local faster_whisper STT engine is not available")
 

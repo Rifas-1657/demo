@@ -326,6 +326,13 @@ async def speech_to_text(
     if provider_name == "local":
         stt_provider = FasterWhisperSTT(
             model_name=settings.faster_whisper_model,
+            compute_type=settings.faster_whisper_compute_type,
+            vad_filter=settings.stt_vad_filter,
+            beam_size=settings.stt_beam_size,
+            temperature=settings.stt_temperature,
+            no_speech_threshold=settings.stt_no_speech_threshold,
+            compression_ratio_threshold=settings.stt_compression_ratio_threshold,
+            log_prob_threshold=settings.stt_log_prob_threshold,
         )
     elif provider_name == "groq":
         if not settings.groq_api_key:
