@@ -476,9 +476,20 @@ class LLMUsage(Base):
 
 class GeneratedPage(Base):
     """
-    Cache for generated pages.
+    Cache for generated pages with approval workflow.
     Keyed by cache_key = sha256(course_id:chapter:page:phash:version)[:32].
-    status: draft | published | unverified | archived
+    
+    Status workflow:
+      draft → approved (publishable) OR rejected (with reason)
+      approved pages can be rolled back to previous versions
+    
+    Status values:
+      - draft: Generated but not reviewed
+      - approved: Reviewed and approved for publishing
+      - rejected: Reviewed and rejected (needs regeneration with feedback)
+      - published: Legacy status (treat as approved)
+      - unverified: Code sandbox unavailable (not publishable until verified)
+      - archived: Old version kept for rollback
     """
     __tablename__ = "generated_pages"
     __table_args__ = {"extend_existing": True}
@@ -488,9 +499,21 @@ class GeneratedPage(Base):
     chapter_number: Mapped[int] = mapped_column(Integer, nullable=False)
     page_number: Mapped[int] = mapped_column(Integer, nullable=False)
     cache_key: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
+    
+    # Approval workflow fields
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft", index=True)
+    rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    approved_by: Mapped[str | None] = mapped_column(String(36), nullable=True)  # user_id
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    rejected_by: Mapped[str | None] = mapped_column(String(36), nullable=True)  # user_id
+    rejected_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    
+    # Content and versioning
     content: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    previous_version_id: Mapped[str | None] = mapped_column(String(36), nullable=True)  # for rollback
+    
+    # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow

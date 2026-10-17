@@ -196,3 +196,17 @@ async def admin_http_client(app_client, admin_token: str):
         headers={"Authorization": f"Bearer {admin_token}"},
     ) as client:
         yield client
+
+
+# ---------------------------------------------------------------------------
+# Database session fixture for direct DB operations
+# ---------------------------------------------------------------------------
+
+@pytest_asyncio.fixture
+async def db_session(app_client):
+    """
+    Function-scoped database session for tests that need direct DB access.
+    Each test gets a fresh session.
+    """
+    async with AsyncSessionLocal() as session:
+        yield session
